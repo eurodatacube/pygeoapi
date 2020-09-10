@@ -23,3 +23,5 @@ ENV PYTHONPATH="/pygeoapi/ogc-edc"
 
 ADD dispatch_app.py /pygeoapi
 RUN sed -i s'/pygeoapi.flask_app:APP/dispatch_app:app/' /entrypoint.sh
+
+ADD local.config.yml /pygeoapi/local.config.yml
