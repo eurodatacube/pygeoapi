@@ -66,7 +66,7 @@ def papermill_gpu_processor() -> PapermillNotebookKubernetesProcessor:
 def create_pod_kwargs() -> Dict:
     return {
         "data": {"notebook": "a", "parameters": ""},
-        "user_uuid": "",
+        "job_name": "",
         "s3_bucket_config": None,
     }
 
@@ -76,23 +76,23 @@ def test_workdir_is_notebook_dir(papermill_processor):
     nb_path = f"{relative_dir}/a.ipynb"
     abs_dir = f"/home/jovyan/{relative_dir}"
 
-    spec, _ = papermill_processor.create_job_pod_spec(
+    job_pod_spec = papermill_processor.create_job_pod_spec(
         data={"notebook": nb_path, "parameters": ""},
-        user_uuid="",
+        job_name="",
         s3_bucket_config=None,
     )
 
-    assert f'--cwd "{abs_dir}"' in str(spec.containers[0].command)
+    assert f'--cwd "{abs_dir}"' in str(job_pod_spec.pod_spec.containers[0].command)
 
 
 def test_json_params_are_b64_encoded(papermill_processor, create_pod_kwargs):
     payload = {"a": 3}
     create_pod_kwargs = copy.deepcopy(create_pod_kwargs)
     create_pod_kwargs["data"]["parameters_json"] = payload
-    spec, _ = papermill_processor.create_job_pod_spec(**create_pod_kwargs)
+    job_pod_spec = papermill_processor.create_job_pod_spec(**create_pod_kwargs)
 
     assert b64encode(json.dumps(payload).encode()).decode() in str(
-        spec.containers[0].command
+        job_pod_spec.pod_spec.containers[0].command
     )
 
 
@@ -100,47 +100,51 @@ def test_custom_output_file_overwrites_default(papermill_processor, create_pod_k
     output_path = "foo/bar.ipynb"
     create_pod_kwargs = copy.deepcopy(create_pod_kwargs)
     create_pod_kwargs["data"]["output_path"] = output_path
-    spec, _ = papermill_processor.create_job_pod_spec(**create_pod_kwargs)
+    job_pod_spec = papermill_processor.create_job_pod_spec(**create_pod_kwargs)
 
-    assert output_path in str(spec.containers[0].command)
+    assert output_path in str(job_pod_spec.pod_spec.containers[0].command)
 
 
 def test_gpu_image_produces_gpu_kernel(papermill_gpu_processor, create_pod_kwargs):
-    spec, _ = papermill_gpu_processor.create_job_pod_spec(**create_pod_kwargs)
-    assert "-k edc-gpu" in str(spec.containers[0].command)
+    job_pod_spec = papermill_gpu_processor.create_job_pod_spec(**create_pod_kwargs)
+    assert "-k edc-gpu" in str(job_pod_spec.pod_spec.containers[0].command)
 
 
 def test_default_image_has_no_affinity(papermill_processor, create_pod_kwargs):
-    spec, _ = papermill_processor.create_job_pod_spec(**create_pod_kwargs)
+    job_pod_spec = papermill_processor.create_job_pod_spec(**create_pod_kwargs)
 
-    assert spec.affinity is None
-    assert spec.tolerations is None
+    assert job_pod_spec.pod_spec.affinity is None
+    assert job_pod_spec.pod_spec.tolerations is None
 
 
 def test_gpu_image_has_affinity(papermill_gpu_processor, create_pod_kwargs):
-    spec, _ = papermill_gpu_processor.create_job_pod_spec(**create_pod_kwargs)
+    job_pod_spec = papermill_gpu_processor.create_job_pod_spec(**create_pod_kwargs)
 
-    r = spec.affinity.node_affinity.required_during_scheduling_ignored_during_execution
+    r = (
+        job_pod_spec.pod_spec.affinity.node_affinity.required_during_scheduling_ignored_during_execution
+    )
     assert r.node_selector_terms[0].match_expressions[0].values == ["g2"]
-    assert spec.tolerations[0].key == "hub.eox.at/gpu"
+    assert job_pod_spec.pod_spec.tolerations[0].key == "hub.eox.at/gpu"
 
 
 def test_no_s3_bucket_by_default(papermill_processor, create_pod_kwargs):
-    spec, _ = papermill_processor.create_job_pod_spec(**create_pod_kwargs)
-    assert "s3mounter" not in [c.name for c in spec.containers]
+    job_pod_spec = papermill_processor.create_job_pod_spec(**create_pod_kwargs)
+    assert "s3mounter" not in [c.name for c in job_pod_spec.pod_spec.containers]
     assert "/home/jovyan/s3" not in [
-        m.mount_path for m in spec.containers[0].volume_mounts
+        m.mount_path for m in job_pod_spec.pod_spec.containers[0].volume_mounts
     ]
 
 
 def test_s3_bucket_present_when_requested(papermill_processor):
-    spec, _ = papermill_processor.create_job_pod_spec(
+    job_pod_spec = papermill_processor.create_job_pod_spec(
         data={"notebook": "a", "parameters": ""},
-        user_uuid="",
+        job_name="",
         s3_bucket_config=KubernetesProcessor.S3BucketConfig(secret_name="a"),
     )
-    assert "s3mounter" in [c.name for c in spec.containers]
-    assert "/home/jovyan/s3" in [m.mount_path for m in spec.containers[0].volume_mounts]
+    assert "s3mounter" in [c.name for c in job_pod_spec.pod_spec.containers]
+    assert "/home/jovyan/s3" in [
+        m.mount_path for m in job_pod_spec.pod_spec.containers[0].volume_mounts
+    ]
 
 
 def test_extra_pvcs_are_added_on_request(create_pod_kwargs):
@@ -148,12 +152,14 @@ def test_extra_pvcs_are_added_on_request(create_pod_kwargs):
     processor = _create_processor(
         {"extra_pvcs": [{"claim_name": claim_name, "mount_path": "/mnt"}]}
     )
-    spec, _ = processor.create_job_pod_spec(**create_pod_kwargs)
+    job_pod_spec = processor.create_job_pod_spec(**create_pod_kwargs)
 
-    assert claim_name in [v.persistent_volume_claim.claim_name for v in spec.volumes]
+    assert claim_name in [
+        v.persistent_volume_claim.claim_name for v in job_pod_spec.pod_spec.volumes
+    ]
 
 
 def test_image_pull_secr_added_when_requested(create_pod_kwargs):
     processor = _create_processor({"image_pull_secret": "psrcr"})
-    spec, _ = processor.create_job_pod_spec(**create_pod_kwargs)
-    assert spec.image_pull_secrets[0].name == "psrcr"
+    job_pod_spec = processor.create_job_pod_spec(**create_pod_kwargs)
+    assert job_pod_spec.pod_spec.image_pull_secrets[0].name == "psrcr"

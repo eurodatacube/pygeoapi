@@ -138,7 +138,7 @@ class PapermillNotebookKubernetesProcessor(KubernetesProcessor):
     def create_job_pod_spec(
         self,
         data: Dict,
-        user_uuid: str,
+        job_name: str,
         s3_bucket_config: Optional[KubernetesProcessor.S3BucketConfig],
     ) -> KubernetesProcessor.JobPodSpec:
         LOGGER.debug("Starting job with data %s", data)
@@ -231,6 +231,7 @@ class PapermillNotebookKubernetesProcessor(KubernetesProcessor):
                 # this is provided in jupyter worker containers and we also use it
                 # for compatibility checks
                 k8s_client.V1EnvVar(name="JUPYTER_IMAGE", value=image),
+                k8s_client.V1EnvVar(name="JOB_NAME", value=job_name),
             ],
         )
 
@@ -246,6 +247,7 @@ class PapermillNotebookKubernetesProcessor(KubernetesProcessor):
                 # we need this to be able to terminate the sidecar container
                 # https://github.com/kubernetes/kubernetes/issues/25908
                 share_process_namespace=True,
+                service_account="pygeoapi-eoxhub-job",
                 **extra_podspec,
             ),
             result={

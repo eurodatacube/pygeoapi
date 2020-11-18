@@ -65,7 +65,7 @@ class KubernetesProcessor(BaseProcessor):
     def create_job_pod_spec(
         self,
         data: Dict,
-        user_uuid: str,
+        job_name: str,
         s3_bucket_config: Optional[KubernetesProcessor.S3BucketConfig],
     ) -> JobPodSpec:
         """
@@ -93,15 +93,7 @@ class KubernetesManager(BaseManager):
 
         self.batch_v1 = k8s_client.BatchV1Api()
         self.core_api = k8s_client.CoreV1Api()
-
-        # TODO: remove user_uuid and jobs_in_user_namespace.
-        #       in the current config, current_namespace() is always used
-        self.user_uuid = manager_def["user_uuid"]
-        self.namespace = (
-            self.user_uuid
-            if manager_def["jobs_in_user_namespace"]
-            else current_namespace()
-        )
+        self.namespace = current_namespace()
 
     def get_jobs(self, processid=None, status=None):
         """
@@ -275,9 +267,10 @@ class KubernetesManager(BaseManager):
         :returns: tuple of None (i.e. initial response payload)
                   and JobStatus.accepted (i.e. initial job status)
         """
+        job_name = k8s_job_name(job_id=job_id)
         job_pod_spec = p.create_job_pod_spec(
             data=data_dict,
-            user_uuid=self.user_uuid,
+            job_name=job_name,
             s3_bucket_config=self._get_s3_bucket_config(),
         )
 
@@ -295,7 +288,7 @@ class KubernetesManager(BaseManager):
             api_version="batch/v1",
             kind="Job",
             metadata=k8s_client.V1ObjectMeta(
-                name=k8s_job_name(job_id=job_id),
+                name=job_name,
                 annotations={
                     format_annotation_key(k): v for k, v in annotations.items()
                 },
