@@ -217,9 +217,11 @@ class PapermillNotebookKubernetesProcessor(KubernetesProcessor):
                 #       setup
                 "-i",
                 "-c",
+                f"{install_papermill_kubernetes_job_progress} && "
                 f"papermill "
                 f'"{notebook_path}" '
                 f'"{output_notebook}" '
+                "--engine kubernetes_job_progress "
                 f'--cwd "{notebook_dir}" '
                 + (f"-k {kernel} " if kernel else "")
                 + (f'-b "{parameters}" ' if parameters else ""),
@@ -440,3 +442,62 @@ def s3_config(s3_bucket_config, s3_bucket_name) -> ExtraConfig:
 
 def drop_none_values(d: Dict) -> Dict:
     return {k: v for k, v in d.items() if v is not None}
+
+
+# NOTE: this is a "temporary" way of getting this installed, we should place this
+#       in the base image in the next iteration.
+
+# generated using:
+# python3 -m pip  wheel --no-deps -w wheels . &&
+#     base64 < wheels/papermill_kubernetes_job_progress-0.1-py3-none-any.whl
+papermill_kubernetes_job_progress_wheel_name = (
+    "papermill_kubernetes_job_progress-0.1-py3-none-any.whl"
+)
+papermill_kubernetes_job_progress_wheel_base64 = """UEsDBBQAAAAIAC+AclFM+nXuQwIAAKUFAAAtAAAAcGFwZXJtaWxsX2t1YmVybmV0ZXNfam9iX3By
+b2dyZXNzL19faW5pdF9fLnB5fVRNb9swDL37VxDuxelSG7kNAQas2XrpsGaHYZdhMGSZcbTIkiDJ
+WYah/32UE381HzyZ5Hu0+ERR1EZbD9pF0cbqGnZNgVahRwfimOJSoPLAHOzeu/zozYFrtRFVH229
+YwXDDNpaSJmiqoQaCr2sPrXkpzYcRRGXzDn40v/xWRffrK4sOnfEJFPKbBkB2ceWV6Pf6rINlLgB
+PCBvPOY1U6zCMlfaY6H1LuHSzUEVITGHe2Yrcu/vd3/CFxVsCwQb2kilZmUuFJeN82hP0WTWQwvm
++TbfL+DDSJJ0FaI/Fo9GELTH/tZFrliNhNWOFNkLq9XP+Hm9yl8evz7Fv3pkQDnDeIDyxlqqmfex
+cUltRZVzlJJOVhtJyhHj2GE6CQ+UoJAJ5yNlJpAkeHSbISZUiYeJODCy87/e4kYTrjndKp0zGeDw
+DhYzyECiSk7HV0XbwVt+J3ja9jCoUuYkbzKBjjWfn2V65nnq31kkWExjxkrmWby8gmhRTNG8MS+0
+cjeBwe7g+/rzegkbcQDPqpvY2PytUDMj8k5CKu+8TTp3dt5IZ68XM+fR12mJkfSXZoqu8OIgDSyL
+vrEKXENrIJmlVx/mtTdJiyGM64UncBzIO6jQe6Eq8FvsYKPXI8UOKSVo7zgoNW9qymM5B6dBeHBb
+3cgSCqQLUNiV3Hpv3DLLhvWXCp0R22WeuZ3LGOck9wMzRgre3vTDaT90qc6NRiJoQ7MdZ3tmM9uo
+zCGnhHvzF4d2LzhSGd0on/WdxLPUIivp6f8HUEsDBBQAAAAIALlDc1EsHAIEkQAAAPYAAAA4AAAA
+cGFwZXJtaWxsX2t1YmVybmV0ZXNfam9iX3Byb2dyZXNzLTAuMS5kaXN0LWluZm8vTUVUQURBVEFd
+j7EOAiEQRHu+gh9Yo5Z0JhYmKhqNWu/peqLsgQsU/r3XeJgr501eMrOljDfMCGeS5EJn9HwyUxaZ
+jI4YSdh5D6/SkHSUKcEzNBAltEIpqUGa9tKxMKN8jD7Ztd1drFoFJojYUkWLkh9BxhmI0flKN+5K
+XfrT9h7zPQhXcqB3cf0GWLqUja4Dx81wQqmfq9QXUEsDBBQAAAAIALlDc1H6jDh+XAAAAFwAAAA1
+AAAAcGFwZXJtaWxsX2t1YmVybmV0ZXNfam9iX3Byb2dyZXNzLTAuMS5kaXN0LWluZm8vV0hFRUwL
+z0hNzdENSy0qzszPs1Iw1DPgck/NSy1KLMkvslJISsksLokvB6lR0DDQMzbRM9LkCsrPL9H1LNYN
+KC1KzclMslIoKSpN5QpJTLdSKKg01s3Lz0vVTcyr5OICAFBLAwQUAAAACAC5Q3NRO7rOg0MAAABs
+AAAAQAAAAHBhcGVybWlsbF9rdWJlcm5ldGVzX2pvYl9wcm9ncmVzcy0wLjEuZGlzdC1pbmZvL2Vu
+dHJ5X3BvaW50cy50eHSLLkgsSC3KzczJ0UvNS8/MS43lyi5NSi3KSy1JLY7Pyk+KLyjKTy9KLS5W
+sFWAq43HocbKGy7ulZ8UABV1BRvMxQUAUEsDBBQAAAAIALlDc1HgGCKuJAAAACIAAAA9AAAAcGFw
+ZXJtaWxsX2t1YmVybmV0ZXNfam9iX3Byb2dyZXNzLTAuMS5kaXN0LWluZm8vdG9wX2xldmVsLnR4
+dCtILEgtys3MyYnPLk1KLcpLLUktjs/KT4ovKMpPL0otLuYCAFBLAwQUAAAACAC5Q3NRxgDKwkUB
+AABnAgAANgAAAHBhcGVybWlsbF9rdWJlcm5ldGVzX2pvYl9wcm9ncmVzcy0wLjEuZGlzdC1pbmZv
+L1JFQ09SRJXQS3KCMAAA0L1nAeQTKCy64BNFBa2KCm4yqOEjECAEKp6+3TjTXccTvJnXxA2mVV6W
+qOgvmBLMcIfu9QU1tE4p7ropQjnJGUJCM3JdFsuq9qlnG9c1ZGk9WxqWDWJvHpBB1K9KBm5hBrZ6
+aC3V6LxILMBJAKiT5j+FFwVJuOUd43OS1FMfBqZjBuYLpLgtFKeFw2o/VFarHQfFWuD+DNHan52e
+amFcb9aXyYtWyslAe9s7uRB6LywFxO8+bnxYGvzDNsJ6ONDOcech42eBCKWPqK0N2YHJEHGG/LaF
+CaMjauqcsE5gD/ZivfBKEq83NVB57LoAqzE6xqlshNvcfroKv79DNSY2TfTfVFF/22V1g0o84PIv
+GsO6EdNFtnmshn5esCAZtV1UnUDs+HG+VUR6+b5760rpD5wC3jZ30N7sHI6b/ABQSwECFAMUAAAA
+CAAvgHJRTPp17kMCAAClBQAALQAAAAAAAAAAAAAAtIEAAAAAcGFwZXJtaWxsX2t1YmVybmV0ZXNf
+am9iX3Byb2dyZXNzL19faW5pdF9fLnB5UEsBAhQDFAAAAAgAuUNzUSwcAgSRAAAA9gAAADgAAAAA
+AAAAAAAAALSBjgIAAHBhcGVybWlsbF9rdWJlcm5ldGVzX2pvYl9wcm9ncmVzcy0wLjEuZGlzdC1p
+bmZvL01FVEFEQVRBUEsBAhQDFAAAAAgAuUNzUfqMOH5cAAAAXAAAADUAAAAAAAAAAAAAALSBdQMA
+AHBhcGVybWlsbF9rdWJlcm5ldGVzX2pvYl9wcm9ncmVzcy0wLjEuZGlzdC1pbmZvL1dIRUVMUEsB
+AhQDFAAAAAgAuUNzUTu6zoNDAAAAbAAAAEAAAAAAAAAAAAAAALSBJAQAAHBhcGVybWlsbF9rdWJl
+cm5ldGVzX2pvYl9wcm9ncmVzcy0wLjEuZGlzdC1pbmZvL2VudHJ5X3BvaW50cy50eHRQSwECFAMU
+AAAACAC5Q3NR4BgiriQAAAAiAAAAPQAAAAAAAAAAAAAAtIHFBAAAcGFwZXJtaWxsX2t1YmVybmV0
+ZXNfam9iX3Byb2dyZXNzLTAuMS5kaXN0LWluZm8vdG9wX2xldmVsLnR4dFBLAQIUAxQAAAAIALlD
+c1HGAMrCRQEAAGcCAAA2AAAAAAAAAAAAAAC0AUQFAABwYXBlcm1pbGxfa3ViZXJuZXRlc19qb2Jf
+cHJvZ3Jlc3MtMC4xLmRpc3QtaW5mby9SRUNPUkRQSwUGAAAAAAYABgBhAgAA3QYAAAAA"""
+
+install_papermill_kubernetes_job_progress = (
+    f'echo "{papermill_kubernetes_job_progress_wheel_base64}" | '
+    f" base64 -d > /tmp/{papermill_kubernetes_job_progress_wheel_name} && "
+    f"python3 -m pip install /tmp/{papermill_kubernetes_job_progress_wheel_name} "
+)
