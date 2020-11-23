@@ -340,7 +340,7 @@ class KubernetesManager(BaseManager):
                 )
 
 
-_ANNOTATIONS_PREFIX = "pygeoapi_"
+_ANNOTATIONS_PREFIX = "pygeoapi.io/"
 
 
 def parse_annotation_key(key: str) -> Optional[str]:
@@ -404,6 +404,7 @@ def job_from_k8s(job: k8s_client.V1Job, message: Optional[str]) -> Dict[str, str
     }
 
     return {
+        "identifier": "",  # need this key in order not to crash, overridden by metadata:
         **metadata_from_annotation,
         **computed_metadata,
     }
