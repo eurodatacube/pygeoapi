@@ -404,7 +404,9 @@ def job_from_k8s(job: k8s_client.V1Job, message: Optional[str]) -> Dict[str, str
     }
 
     return {
-        "identifier": "",  # need this key in order not to crash, overridden by metadata:
+        # need this key in order not to crash, overridden by metadata:
+        "identifier": "",
+        "process_start_datetime": "",
         **metadata_from_annotation,
         **computed_metadata,
     }
