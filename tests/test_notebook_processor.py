@@ -97,10 +97,10 @@ def test_json_params_are_b64_encoded(papermill_processor, create_pod_kwargs):
 def test_custom_output_file_overwrites_default(papermill_processor, create_pod_kwargs):
     output_path = "foo/bar.ipynb"
     create_pod_kwargs = copy.deepcopy(create_pod_kwargs)
-    create_pod_kwargs["data"]["output_path"] = output_path
+    create_pod_kwargs["data"]["output_filename"] = output_path
     job_pod_spec = papermill_processor.create_job_pod_spec(**create_pod_kwargs)
 
-    assert output_path in str(job_pod_spec.pod_spec.containers[0].command)
+    assert "bar.ipynb" in str(job_pod_spec.pod_spec.containers[0].command)
 
 
 def test_gpu_image_produces_gpu_kernel(papermill_gpu_processor, create_pod_kwargs):
