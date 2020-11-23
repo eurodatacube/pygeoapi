@@ -12,6 +12,7 @@ class KubernetesJobProgressEngine(NBClientEngine):
         batch_v1 = k8s_client.BatchV1Api()
 
         job_name = os.environ["JOB_NAME"]
+        progress_annotation = os.environ['PROGRESS_ANNOTATION']
         namespace = current_namespace()
 
         orig_cell_complete = nb_man.cell_complete
@@ -27,8 +28,7 @@ class KubernetesJobProgressEngine(NBClientEngine):
                 {
                     "metadata": {
                         "annotations": {
-                            # TODO: fix tag
-                            "pygeoapi_progress": str(progress),
+                            progress_annotation: str(progress),
                         }
                     }
                 },
