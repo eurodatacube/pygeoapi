@@ -2153,6 +2153,7 @@ tiles/{{{}}}/{{{}}}/{{{}}}/{{{}}}?f=mvt'
             'status': status.value,
             'message': job_result.get('message', None),
             'parameters': job_result.get('parameters'),
+            'progress': int(job_result.get('progress', 0)),
             'links': [{
                 'href': '{}/processes/{}/jobs/{}'.format(
                     self.config['server']['url'], process_id, job_id
