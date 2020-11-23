@@ -139,6 +139,7 @@ class PapermillNotebookKubernetesProcessor(KubernetesProcessor):
         self.home_volume_claim_name: str = processor_def["home_volume_claim_name"]
         self.extra_pvcs: List = processor_def["extra_pvcs"]
         self.jupyer_base_url: str = processor_def["jupyter_base_url"]
+        self.output_directory: PurePath = PurePath(processor_def["output_directory"])
 
     def create_job_pod_spec(
         self,
@@ -222,7 +223,7 @@ class PapermillNotebookKubernetesProcessor(KubernetesProcessor):
                 f"{install_papermill_kubernetes_job_progress} && "
                 f"papermill "
                 f'"{notebook_path}" '
-                f'"{output_notebook}" '
+                f'"{self.output_directory / output_notebook}" '
                 "--engine kubernetes_job_progress "
                 f'--cwd "{notebook_dir}" '
                 + (f"-k {kernel} " if kernel else "")

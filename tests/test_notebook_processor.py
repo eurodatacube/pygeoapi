@@ -47,6 +47,7 @@ def _create_processor(def_override=None) -> PapermillNotebookKubernetesProcessor
             "home_volume_claim_name": "user",
             "image_pull_secret": "",
             "jupyter_base_url": "",
+            "output_directory": "/a/b/c",
             **(def_override if def_override else {}),
         }
     )
@@ -101,6 +102,15 @@ def test_custom_output_file_overwrites_default(papermill_processor, create_pod_k
     job_pod_spec = papermill_processor.create_job_pod_spec(**create_pod_kwargs)
 
     assert "bar.ipynb" in str(job_pod_spec.pod_spec.containers[0].command)
+
+
+def test_output_is_written_to_output_dir(create_pod_kwargs):
+    output_dir = "/home/jov"
+
+    processor = _create_processor({"output_directory": output_dir})
+    job_pod_spec = processor.create_job_pod_spec(**create_pod_kwargs)
+
+    assert output_dir + "/a_result" in str(job_pod_spec.pod_spec.containers[0].command)
 
 
 def test_gpu_image_produces_gpu_kernel(papermill_gpu_processor, create_pod_kwargs):
