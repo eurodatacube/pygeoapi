@@ -12,7 +12,7 @@ class KubernetesJobProgressEngine(NBClientEngine):
         batch_v1 = k8s_client.BatchV1Api()
 
         job_name = os.environ["JOB_NAME"]
-        progress_annotation = os.environ['PROGRESS_ANNOTATION']
+        progress_annotation = os.environ["PROGRESS_ANNOTATION"]
         namespace = current_namespace()
 
         orig_cell_complete = nb_man.cell_complete
@@ -20,7 +20,9 @@ class KubernetesJobProgressEngine(NBClientEngine):
         def patched_cell_complete(cell, cell_index, **kwargs):
             orig_cell_complete(cell, cell_index, **kwargs)
 
-            progress = (cell_index + 1) / len(nb_man.nb.cells)
+            ratio_progress = (cell_index + 1) / len(nb_man.nb.cells)
+            # progress is a value between 0 and 100
+            progress = round(ratio_progress * 100)
 
             batch_v1.patch_namespaced_job(
                 job_name,

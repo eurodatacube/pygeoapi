@@ -370,11 +370,7 @@ def job_from_k8s(job: k8s_client.V1Job, message: Optional[str]) -> Dict[str, str
         # NOTE: this is passed as string as compatibility with base manager
         "status": status.value,
         "message": message if message else "",
-        "progress": {
-            # we've no idea about the actual progress
-            JobStatus.accepted: "5",
-            JobStatus.running: "50",
-        }.get(status, "100"),
+        "progress": "1",  # default values in case we don't get them from metadata (yet)
         "process_end_datetime": (
             completion_time.strftime(DATETIME_FORMAT) if completion_time else None
         ),
@@ -384,8 +380,8 @@ def job_from_k8s(job: k8s_client.V1Job, message: Optional[str]) -> Dict[str, str
         # need this key in order not to crash, overridden by metadata:
         "identifier": "",
         "process_start_datetime": "",
-        **metadata_from_annotation,
         **computed_metadata,
+        **metadata_from_annotation,
     }
 
 
