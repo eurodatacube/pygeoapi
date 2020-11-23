@@ -287,7 +287,7 @@ class KubernetesManager(BaseManager):
             spec=k8s_client.V1JobSpec(
                 template=k8s_client.V1PodTemplateSpec(spec=job_pod_spec.pod_spec),
                 backoff_limit=0,
-                ttl_seconds_after_finished=60 * 60 * 24 * 7,
+                ttl_seconds_after_finished=60 * 60 * 24 * 100,  # about 3 months
             ),
         )
 
