@@ -131,18 +131,19 @@ class ExtraConfig:
 class PapermillNotebookKubernetesProcessor(KubernetesProcessor):
     def __init__(self, processor_def):
         super().__init__(processor_def, PROCESS_METADATA)
-        self.default_image = processor_def["default_image"]
-        self.image_pull_secret = processor_def["image_pull_secret"]
-        self.s3_bucket_name = processor_def["s3_bucket_name"]
-        self.home_volume_claim_name = processor_def["home_volume_claim_name"]
-        self.extra_pvcs = processor_def["extra_pvcs"]
-        self.jupyer_base_url = processor_def["jupyter_base_url"]
+
+        # TODO: config file parsing?
+        self.default_image: str = processor_def["default_image"]
+        self.image_pull_secret: str = processor_def["image_pull_secret"]
+        self.s3: Dict[str, str] = processor_def.get("s3")
+        self.home_volume_claim_name: str = processor_def["home_volume_claim_name"]
+        self.extra_pvcs: List = processor_def["extra_pvcs"]
+        self.jupyer_base_url: str = processor_def["jupyter_base_url"]
 
     def create_job_pod_spec(
         self,
         data: Dict,
         job_name: str,
-        s3_bucket_config: Optional[KubernetesProcessor.S3BucketConfig],
     ) -> KubernetesProcessor.JobPodSpec:
         LOGGER.debug("Starting job with data %s", data)
         notebook_path = data["notebook"]
@@ -200,10 +201,10 @@ class PapermillNotebookKubernetesProcessor(KubernetesProcessor):
                 for num, extra_pvc in enumerate(self.extra_pvcs)
             )
 
-            if s3_bucket_config:
+            if self.s3:
                 yield s3_config(
-                    s3_bucket_config=s3_bucket_config,
-                    s3_bucket_name=self.s3_bucket_name,
+                    bucket_name=self.s3["bucket_name"],
+                    secret_name=self.s3["secret_name"],
                 )
 
         extra_config = functools.reduce(operator.add, extra_configs())
@@ -361,7 +362,7 @@ def extra_pvc_config(extra_pvc: Dict) -> ExtraConfig:
     )
 
 
-def s3_config(s3_bucket_config, s3_bucket_name) -> ExtraConfig:
+def s3_config(bucket_name, secret_name) -> ExtraConfig:
     s3_user_bucket_volume_name = "s3-user-bucket"
     return ExtraConfig(
         volume_mounts=[
@@ -416,7 +417,7 @@ def s3_config(s3_bucket_config, s3_bucket_name) -> ExtraConfig:
                         name="AWS_S3_ACCESS_KEY_ID",
                         value_from=k8s_client.V1EnvVarSource(
                             secret_key_ref=k8s_client.V1SecretKeySelector(
-                                name=s3_bucket_config.secret_name,
+                                name=secret_name,
                                 key="username",
                             )
                         ),
@@ -425,14 +426,14 @@ def s3_config(s3_bucket_config, s3_bucket_name) -> ExtraConfig:
                         name="AWS_S3_SECRET_ACCESS_KEY",
                         value_from=k8s_client.V1EnvVarSource(
                             secret_key_ref=k8s_client.V1SecretKeySelector(
-                                name=s3_bucket_config.secret_name,
+                                name=secret_name,
                                 key="password",
                             )
                         ),
                     ),
                     k8s_client.V1EnvVar(
                         "AWS_S3_BUCKET",
-                        s3_bucket_name,
+                        bucket_name,
                     ),
                     # due to the shared process namespace, tini is not PID 1, so:
                     k8s_client.V1EnvVar(name="TINI_SUBREAPER", value="1"),

@@ -48,14 +48,7 @@ from pygeoapi.process.manager.base import BaseManager, DATETIME_FORMAT
 LOGGER = logging.getLogger(__name__)
 
 
-S3_BUCKET_SECRET_NAME = "s3-bucket"
-
-
 class KubernetesProcessor(BaseProcessor):
-    @dataclass(frozen=True)
-    class S3BucketConfig:
-        secret_name: str
-
     @dataclass(frozen=True)
     class JobPodSpec:
         pod_spec: k8s_client.V1PodSpec
@@ -66,7 +59,6 @@ class KubernetesProcessor(BaseProcessor):
         self,
         data: Dict,
         job_name: str,
-        s3_bucket_config: Optional[KubernetesProcessor.S3BucketConfig],
     ) -> JobPodSpec:
         """
         Returns a definition of a job as well as result handling.
@@ -271,7 +263,6 @@ class KubernetesManager(BaseManager):
         job_pod_spec = p.create_job_pod_spec(
             data=data_dict,
             job_name=job_name,
-            s3_bucket_config=self._get_s3_bucket_config(),
         )
 
         annotations = {
@@ -305,20 +296,6 @@ class KubernetesManager(BaseManager):
         LOGGER.info("Add job %s in ns %s", job.metadata.name, self.namespace)
 
         return (None, JobStatus.accepted)
-
-    def _get_s3_bucket_config(self) -> Optional[KubernetesProcessor.S3BucketConfig]:
-        # TODO: this now returns a very sophisticated bool, possibly refactor
-        try:
-            self.core_api.read_namespaced_secret(S3_BUCKET_SECRET_NAME, self.namespace)
-        except kubernetes.client.rest.ApiException as e:
-            if e.status == HTTPStatus.NOT_FOUND:
-                return None
-            else:
-                raise
-        else:
-            return KubernetesProcessor.S3BucketConfig(
-                secret_name=S3_BUCKET_SECRET_NAME,
-            )
 
     def _job_message(self, job: k8s_client.V1Job) -> Optional[str]:
         label_selector = ",".join(

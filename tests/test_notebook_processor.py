@@ -41,7 +41,7 @@ def _create_processor(def_override=None) -> PapermillNotebookKubernetesProcessor
     return PapermillNotebookKubernetesProcessor(
         processor_def={
             "name": "test",
-            "s3_bucket_name": "example",
+            "s3": None,
             "default_image": "example",
             "extra_pvcs": [],
             "home_volume_claim_name": "user",
@@ -67,7 +67,6 @@ def create_pod_kwargs() -> Dict:
     return {
         "data": {"notebook": "a", "parameters": ""},
         "job_name": "",
-        "s3_bucket_config": None,
     }
 
 
@@ -79,7 +78,6 @@ def test_workdir_is_notebook_dir(papermill_processor):
     job_pod_spec = papermill_processor.create_job_pod_spec(
         data={"notebook": nb_path, "parameters": ""},
         job_name="",
-        s3_bucket_config=None,
     )
 
     assert f'--cwd "{abs_dir}"' in str(job_pod_spec.pod_spec.containers[0].command)
@@ -135,12 +133,11 @@ def test_no_s3_bucket_by_default(papermill_processor, create_pod_kwargs):
     ]
 
 
-def test_s3_bucket_present_when_requested(papermill_processor):
-    job_pod_spec = papermill_processor.create_job_pod_spec(
-        data={"notebook": "a", "parameters": ""},
-        job_name="",
-        s3_bucket_config=KubernetesProcessor.S3BucketConfig(secret_name="a"),
+def test_s3_bucket_present_when_requested(create_pod_kwargs):
+    processor = _create_processor(
+        {"s3": {"bucket_name": "example", "secret_name": "example"}}
     )
+    job_pod_spec = processor.create_job_pod_spec(**create_pod_kwargs)
     assert "s3mounter" in [c.name for c in job_pod_spec.pod_spec.containers]
     assert "/home/jovyan/s3" in [
         m.mount_path for m in job_pod_spec.pod_spec.containers[0].volume_mounts
@@ -155,7 +152,9 @@ def test_extra_pvcs_are_added_on_request(create_pod_kwargs):
     job_pod_spec = processor.create_job_pod_spec(**create_pod_kwargs)
 
     assert claim_name in [
-        v.persistent_volume_claim.claim_name for v in job_pod_spec.pod_spec.volumes
+        v.persistent_volume_claim.claim_name
+        for v in job_pod_spec.pod_spec.volumes
+        if v.persistent_volume_claim
     ]
 
 
