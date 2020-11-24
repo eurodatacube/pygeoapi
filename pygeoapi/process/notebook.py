@@ -251,8 +251,24 @@ class PapermillNotebookKubernetesProcessor(KubernetesProcessor):
             ],
         )
 
+        # NOTE: this link currently doesn't work (even those created in
+        #   the ui with "create sharable link" don't)
+        #   there is a recently closed issue about it:
+        # https://github.com/jupyterlab/jupyterlab/issues/8359
+        #   it doesn't say when it was fixed exactly. there's a possibly
+        #   related fix from last year:
+        # https://github.com/jupyterlab/jupyterlab/pull/6773
+        result_link = (
+            f"{self.jupyer_base_url}/hub/user-redirect/lab/tree/"
+            + urllib.parse.quote(str(output_notebook))
+        )
+
         # save parameters but make sure the string is not too long
-        extra_annotations = {"parameters": b64decode(parameters).decode()[:8000]}
+        extra_annotations = {
+            "parameters": b64decode(parameters).decode()[:8000],
+            "result-link": result_link,
+            "result-notebook": str(output_notebook),
+        }
 
         return KubernetesProcessor.JobPodSpec(
             pod_spec=k8s_client.V1PodSpec(
@@ -269,20 +285,6 @@ class PapermillNotebookKubernetesProcessor(KubernetesProcessor):
                 ),
                 **extra_podspec,
             ),
-            result={
-                "result_type": "link",
-                "link": (
-                    # NOTE: this link currently doesn't work (even those created in
-                    #   the ui with "create sharable link" don't)
-                    #   there is a recently closed issue about it:
-                    # https://github.com/jupyterlab/jupyterlab/issues/8359
-                    #   it doesn't say when it was fixed exactly. there's a possibly
-                    #   related fix from last year:
-                    # https://github.com/jupyterlab/jupyterlab/pull/6773
-                    f"{self.jupyer_base_url}/hub/user-redirect/lab/tree/"
-                    + urllib.parse.quote(str(output_notebook))
-                ),
-            },
             extra_annotations=extra_annotations,
         )
 

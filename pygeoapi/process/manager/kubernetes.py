@@ -52,7 +52,6 @@ class KubernetesProcessor(BaseProcessor):
     @dataclass(frozen=True)
     class JobPodSpec:
         pod_spec: k8s_client.V1PodSpec
-        result: Dict
         extra_annotations: Dict
 
     def create_job_pod_spec(
@@ -179,7 +178,7 @@ class KubernetesManager(BaseManager):
             output = (
                 None
                 if job_status != JobStatus.successful
-                else {"result_link": result["result_link"]}
+                else {"result-link": result["result-link"]}
                 # NOTE: this assumes links are the only result type
             )
             return (job_status, output)
@@ -270,10 +269,6 @@ class KubernetesManager(BaseManager):
             "process_start_datetime": datetime.utcnow().strftime(DATETIME_FORMAT),
             **job_pod_spec.extra_annotations,
         }
-        if job_pod_spec.result["result_type"] == "link":
-            annotations["result_link"] = job_pod_spec.result["link"]
-        else:
-            raise Exception("invalid result type %s", job_pod_spec.result)
 
         job = k8s_client.V1Job(
             api_version="batch/v1",
