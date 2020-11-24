@@ -2228,7 +2228,7 @@ tiles/{{{}}}/{{{}}}/{{{}}}/{{{}}}?f=mvt'
             LOGGER.info(exception)
             return headers_, 404, json.dumps(exception)
 
-        status, job_output = self.manager.get_job_output(process_id, job_id)
+        status, job_output, content_type = self.manager.get_job_output(process_id, job_id)
 
         if not status:
             exception = {
@@ -2273,7 +2273,18 @@ tiles/{{{}}}/{{{}}}/{{{}}}/{{{}}}?f=mvt'
                 'result': job_output
             })
             return headers_, 200, response
-        return headers_, 200, json.dumps(job_output, sort_keys=True, indent=4, default=json_serial)
+
+        if content_type:
+            headers_['Content-Type'] = content_type
+
+        # json-serialize non-binary output
+        serialized_output = (
+             job_output
+             if isinstance(job_output, bytes)
+             else json.dumps(job_output, sort_keys=True, indent=4, default=json_serial)
+        )
+
+        return headers_, 200, serialized_output
 
     def delete_job(self, process_id, job_id):
         """

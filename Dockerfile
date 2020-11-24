@@ -58,7 +58,7 @@ ARG TZ="Etc/UTC"
 ARG LANG="en_US.UTF-8"
 ARG ADD_DEB_PACKAGES=""
 # TODO: define this elsewhere
-ARG ADD_PIP_PACKAGES="kubernetes"
+ARG ADD_PIP_PACKAGES="kubernetes nteract-scrapbook"
 
 # ENV settings
 ENV TZ=${TZ} \

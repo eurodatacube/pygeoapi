@@ -40,13 +40,14 @@ from pygeoapi.process.notebook import (
     PapermillNotebookKubernetesProcessor,
 )
 
-OUTPUT_DIRECTORY = "/a/b/c"
+OUTPUT_DIRECTORY = "/home/jovyan/foo/test"
 
 
 @pytest.fixture(autouse=True)
 def cleanup_job_directory():
-    for file in Path(OUTPUT_DIRECTORY).iterdir():
-        file.unlink()
+    if (job_dir := Path(OUTPUT_DIRECTORY)).exists():
+        for file in job_dir.iterdir():
+            file.unlink()
 
 
 def _create_processor(def_override=None) -> PapermillNotebookKubernetesProcessor:
@@ -117,7 +118,7 @@ def test_custom_output_file_overwrites_default(papermill_processor, create_pod_k
 
 
 def test_output_is_written_to_output_dir(create_pod_kwargs):
-    output_dir = "/home/jov"
+    output_dir = "/home/jovyan"
 
     processor = _create_processor({"output_directory": output_dir})
     job_pod_spec = processor.create_job_pod_spec(**create_pod_kwargs)

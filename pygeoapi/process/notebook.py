@@ -33,13 +33,16 @@ from base64 import b64encode, b64decode
 from dataclasses import dataclass, field
 from datetime import datetime
 import functools
+import itertools
 import json
 import logging
 import operator
 from pathlib import PurePath, Path
-import re
 import os
-from typing import Dict, Iterable, Optional, List
+import re
+import scrapbook
+import scrapbook.scraps
+from typing import Dict, Iterable, Optional, List, Tuple, Any
 import urllib.parse
 
 from kubernetes import client as k8s_client
@@ -290,6 +293,50 @@ class PapermillNotebookKubernetesProcessor(KubernetesProcessor):
 
     def __repr__(self):
         return "<PapermillNotebookKubernetesProcessor> {}".format(self.name)
+
+
+def notebook_job_output(result: Dict) -> Tuple[Any, Optional[str]]:
+
+    # NOTE: this assumes that we have user home under the same path as jupyter
+    scraps = scrapbook.read_notebook(result["result-notebook"]).scraps
+
+    LOGGER.debug("Retrieved scraps from notebook: %s", scraps)
+
+    if not scraps:
+        return ({"result-link": result["result-link"]}, None)
+    elif len(scraps) == 1:
+        # if there's only one item, return it right away with correct content type.
+        # this way, you can show e.g. an image in the browser.
+        # otherwise, we just return the scrap structure
+        return serialize_single_scrap(next(iter(scraps.values())))
+    else:
+        return scraps, None
+
+
+def serialize_single_scrap(scrap: scrapbook.scraps.Scrap) -> Tuple[Any, Optional[str]]:
+
+    text_mime = "text/plain"
+
+    if scrap.display:
+        # we're only interested in display_data
+        # https://ipython.org/ipython-doc/dev/notebook/nbformat.html#display-data
+        if scrap.display["output_type"] == "display_data":
+
+            # prefer non-text items
+            ((_, non_text_items), (_, text_items)) = itertools.groupby(
+                scrap.display["data"].items(),
+                key=lambda item: item[0] == text_mime,
+            )
+
+            if (non_text_item := next(non_text_items, None)) :
+                return b64decode(non_text_item[1]), non_text_item[0]
+            else:
+                text_item = next(text_items)
+                return text_item[1], text_item[0]
+        else:
+            return scrap.display, None
+    else:
+        return scrap.data, None
 
 
 def default_output_path(notebook_path: str) -> str:

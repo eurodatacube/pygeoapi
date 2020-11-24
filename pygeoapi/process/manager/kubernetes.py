@@ -34,7 +34,7 @@ from http import HTTPStatus
 import logging
 import re
 import time
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, Any
 from dataclasses import dataclass
 
 from kubernetes import client as k8s_client, config as k8s_config
@@ -158,7 +158,7 @@ class KubernetesManager(BaseManager):
 
     def get_job_output(
         self, processid, job_id
-    ) -> Tuple[Optional[JobStatus], Optional[Dict]]:
+    ) -> Tuple[Optional[JobStatus], Optional[Any], Optional[str]]:
         """
         Returns the actual output from a finished process, or else None if the
         process has not finished execution.
@@ -168,20 +168,21 @@ class KubernetesManager(BaseManager):
 
         :returns: tuple of: JobStatus `Enum`, and
         """
+        # avoid import loop
+        from pygeoapi.process.notebook import notebook_job_output
+
         result = self.get_job_result(processid=processid, jobid=job_id)
 
-        if result is None:
-            # no such job
-            return (None, None)
+        if (
+            result is None
+            or (job_status := JobStatus[result["status"]]) != JobStatus.successful
+        ):
+            return (None, None, None)
         else:
-            job_status = JobStatus[result["status"]]
-            output = (
-                None
-                if job_status != JobStatus.successful
-                else {"result-link": result["result-link"]}
-                # NOTE: this assumes links are the only result type
-            )
-            return (job_status, output)
+            # NOTE: this assumes that notebooks are the only output type
+            (output, content_type) = notebook_job_output(result)
+
+            return (job_status, output, content_type)
 
     def delete_job(self, processid, job_id):
         """
@@ -240,6 +241,7 @@ class KubernetesManager(BaseManager):
             if status not in (JobStatus.running, JobStatus.accepted):
                 break
 
+        # TODO: handle content type here
         return (
             self.get_job_output(processid=p.metadata["id"], job_id=job_id)[1],
             status,
