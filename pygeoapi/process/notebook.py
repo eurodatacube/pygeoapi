@@ -33,7 +33,6 @@ from base64 import b64encode, b64decode
 from dataclasses import dataclass, field
 from datetime import datetime
 import functools
-import itertools
 import json
 import logging
 import operator
@@ -320,19 +319,17 @@ def serialize_single_scrap(scrap: scrapbook.scraps.Scrap) -> Tuple[Any, Optional
     if scrap.display:
         # we're only interested in display_data
         # https://ipython.org/ipython-doc/dev/notebook/nbformat.html#display-data
+
         if scrap.display["output_type"] == "display_data":
-
-            # prefer non-text items
-            ((_, non_text_items), (_, text_items)) = itertools.groupby(
-                scrap.display["data"].items(),
-                key=lambda item: item[0] == text_mime,
+            # data contains representations with different mime types as keys. we
+            # want to prefer non-text
+            mime_type = next(
+                (f for f in scrap.display["data"] if f != text_mime),
+                text_mime,
             )
-
-            if (non_text_item := next(non_text_items, None)) :
-                return b64decode(non_text_item[1]), non_text_item[0]
-            else:
-                text_item = next(text_items)
-                return text_item[1], text_item[0]
+            item = scrap.display["data"][mime_type]
+            encoded_output = item if mime_type == text_mime else b64decode(item)
+            return (encoded_output, mime_type)
         else:
             return scrap.display, None
     else:
