@@ -136,7 +136,7 @@ class PapermillNotebookKubernetesProcessor(KubernetesProcessor):
     def __init__(self, processor_def):
         super().__init__(processor_def, PROCESS_METADATA)
 
-        # TODO: config file parsing?
+        # TODO: config file parsing (typed-json-dataclass?)
         self.default_image: str = processor_def["default_image"]
         self.image_pull_secret: str = processor_def["image_pull_secret"]
         self.s3: Optional[Dict[str, str]] = processor_def.get("s3")
@@ -151,6 +151,7 @@ class PapermillNotebookKubernetesProcessor(KubernetesProcessor):
         job_name: str,
     ) -> KubernetesProcessor.JobPodSpec:
         LOGGER.debug("Starting job with data %s", data)
+        # TODO: add more formal data parsing (typed-json-dataclass?)
         notebook_path = data["notebook"]
         parameters = data.get("parameters", "")
         if not parameters:
