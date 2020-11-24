@@ -2265,7 +2265,8 @@ tiles/{{{}}}/{{{}}}/{{{}}}/{{{}}}?f=mvt'
             LOGGER.info(exception)
             return headers_, http_status, json.dumps(exception)
 
-        if format_ == 'html':
+        # only provide html if job output doesn't force anything
+        if not content_type and format_ == 'html':
             headers_['Content-Type'] = 'text/html'
             response = render_j2_template(self.config, 'jobresult.html', {
                 'process': {'id': process_id, 'title': process.metadata['title']},
