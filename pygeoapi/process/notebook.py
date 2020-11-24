@@ -260,7 +260,7 @@ class PapermillNotebookKubernetesProcessor(KubernetesProcessor):
         # https://github.com/jupyterlab/jupyterlab/pull/6773
         result_link = (
             f"{self.jupyer_base_url}/hub/user-redirect/lab/tree/"
-            + urllib.parse.quote(str(output_notebook))
+            + urllib.parse.quote(str(output_notebook.relative_to(CONTAINER_HOME)))
         )
 
         # save parameters but make sure the string is not too long
