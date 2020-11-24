@@ -36,8 +36,9 @@ import functools
 import json
 import logging
 import operator
-from pathlib import PurePath
+from pathlib import PurePath, Path
 import re
+import os
 from typing import Dict, Iterable, Optional, List
 import urllib.parse
 
@@ -113,6 +114,9 @@ PROCESS_METADATA = {
 
 CONTAINER_HOME = PurePath("/home/jovyan")
 
+# this just needs to be any unique id
+JOB_RUNNER_GROUP_ID = 20200
+
 
 @dataclass(frozen=True)
 class ExtraConfig:
@@ -139,7 +143,7 @@ class PapermillNotebookKubernetesProcessor(KubernetesProcessor):
         self.home_volume_claim_name: str = processor_def["home_volume_claim_name"]
         self.extra_pvcs: List = processor_def["extra_pvcs"]
         self.jupyer_base_url: str = processor_def["jupyter_base_url"]
-        self.output_directory: PurePath = PurePath(processor_def["output_directory"])
+        self.output_directory: Path = Path(processor_def["output_directory"])
 
     def create_job_pod_spec(
         self,
@@ -165,9 +169,12 @@ class PapermillNotebookKubernetesProcessor(KubernetesProcessor):
 
         notebook_dir = working_dir(PurePath(notebook_path))
 
-        output_notebook = PurePath(
-            data.get("output_filename", default_output_path(notebook_path))
-        ).name
+        output_notebook = setup_output_notebook(
+            output_directory=self.output_directory,
+            output_notebook_filename=PurePath(
+                data.get("output_filename", default_output_path(notebook_path))
+            ).name,
+        )
 
         extra_podspec = gpu_extra_podspec() if is_gpu else {}
 
@@ -223,7 +230,7 @@ class PapermillNotebookKubernetesProcessor(KubernetesProcessor):
                 f"{install_papermill_kubernetes_job_progress} && "
                 f"papermill "
                 f'"{notebook_path}" '
-                f'"{self.output_directory / output_notebook}" '
+                f'"{output_notebook}" '
                 "--engine kubernetes_job_progress "
                 f'--cwd "{notebook_dir}" '
                 + (f"-k {kernel} " if kernel else "")
@@ -256,6 +263,9 @@ class PapermillNotebookKubernetesProcessor(KubernetesProcessor):
                 # https://github.com/kubernetes/kubernetes/issues/25908
                 share_process_namespace=True,
                 service_account="pygeoapi-eoxhub-job",
+                security_context=k8s_client.V1PodSecurityContext(
+                    supplemental_groups=[JOB_RUNNER_GROUP_ID]
+                ),
                 **extra_podspec,
             ),
             result={
@@ -269,7 +279,7 @@ class PapermillNotebookKubernetesProcessor(KubernetesProcessor):
                     #   related fix from last year:
                     # https://github.com/jupyterlab/jupyterlab/pull/6773
                     f"{self.jupyer_base_url}/hub/user-redirect/lab/tree/"
-                    + urllib.parse.quote(output_notebook)
+                    + urllib.parse.quote(str(output_notebook))
                 ),
             },
             extra_annotations=extra_annotations,
@@ -283,6 +293,25 @@ def default_output_path(notebook_path: str) -> str:
     filename_without_postfix = re.sub(".ipynb$", "", notebook_path)
     now_formatted = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
     return filename_without_postfix + f"_result_{now_formatted}.ipynb"
+
+
+def setup_output_notebook(
+    output_directory: Path,
+    output_notebook_filename: str,
+) -> Path:
+    output_notebook = output_directory / output_notebook_filename
+
+    # create output directory owned by root (readable, but not changeable by user)
+    output_directory.mkdir(exist_ok=True, parents=True)
+
+    # create file owned by root but group is job runner group.
+    # this way we can execute the job with the jovyan user with the additional group,
+    # which the actual user (as in human) in jupyterlab does not have.
+    output_notebook.touch(exist_ok=False)
+    # TODO: reasonable error when output notebook already exists
+    os.chown(output_notebook, uid=0, gid=JOB_RUNNER_GROUP_ID)
+    os.chmod(output_notebook, mode=0o664)
+    return output_notebook
 
 
 def working_dir(notebook_path: PurePath) -> PurePath:

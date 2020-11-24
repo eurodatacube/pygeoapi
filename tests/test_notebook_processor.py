@@ -30,11 +30,23 @@
 from base64 import b64encode
 import copy
 import json
+from pathlib import Path
 import pytest
+import stat
 from typing import Dict
 
-from pygeoapi.process.manager.kubernetes import KubernetesProcessor
-from pygeoapi.process.notebook import PapermillNotebookKubernetesProcessor
+from pygeoapi.process.notebook import (
+    JOB_RUNNER_GROUP_ID,
+    PapermillNotebookKubernetesProcessor,
+)
+
+OUTPUT_DIRECTORY = "/a/b/c"
+
+
+@pytest.fixture(autouse=True)
+def cleanup_job_directory():
+    for file in Path(OUTPUT_DIRECTORY).iterdir():
+        file.unlink()
 
 
 def _create_processor(def_override=None) -> PapermillNotebookKubernetesProcessor:
@@ -47,7 +59,7 @@ def _create_processor(def_override=None) -> PapermillNotebookKubernetesProcessor
             "home_volume_claim_name": "user",
             "image_pull_secret": "",
             "jupyter_base_url": "",
-            "output_directory": "/a/b/c",
+            "output_directory": OUTPUT_DIRECTORY,
             **(def_override if def_override else {}),
         }
     )
@@ -172,3 +184,17 @@ def test_image_pull_secr_added_when_requested(create_pod_kwargs):
     processor = _create_processor({"image_pull_secret": "psrcr"})
     job_pod_spec = processor.create_job_pod_spec(**create_pod_kwargs)
     assert job_pod_spec.pod_spec.image_pull_secrets[0].name == "psrcr"
+
+
+def test_output_path_owned_by_job_runner_group_and_group_writable(
+    papermill_processor, create_pod_kwargs
+):
+    output_filename = "foo.ipynb"
+    create_pod_kwargs = copy.deepcopy(create_pod_kwargs)
+    create_pod_kwargs["data"]["output_filename"] = output_filename
+    papermill_processor.create_job_pod_spec(**create_pod_kwargs)
+
+    output_notebook = Path(OUTPUT_DIRECTORY) / output_filename
+    assert output_notebook.stat().st_gid == JOB_RUNNER_GROUP_ID
+
+    assert output_notebook.stat().st_mode & stat.S_IWGRP  # write group
