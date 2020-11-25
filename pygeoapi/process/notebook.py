@@ -313,7 +313,11 @@ def notebook_job_output(result: JobDict) -> Tuple[Any, Optional[str]]:
         # otherwise, we just return the scrap structure
         return serialize_single_scrap(next(iter(scraps.values())))
     else:
-        return scraps, None
+        # TODO: support serializing multiple scraps, possibly according to result schema:
+        # https://github.com/opengeospatial/wps-rest-binding/blob/master/core/openapi/schemas/result.yaml
+        return serialize_single_scrap(next(iter(scraps.values())))
+
+        # return scraps, None
 
 
 def serialize_single_scrap(scrap: scrapbook.scraps.Scrap) -> Tuple[Any, Optional[str]]:
