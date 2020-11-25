@@ -185,11 +185,10 @@ class KubernetesManager(BaseManager):
 
         result = self.get_job_result(processid=processid, jobid=job_id)
 
-        if (
-            result is None
-            or (job_status := JobStatus[result["status"]]) != JobStatus.successful
-        ):
+        if result is None:
             return (None, None, None)
+        elif (job_status := JobStatus[result["status"]]) != JobStatus.successful:
+            return (job_status, None, None)
         else:
             (output, content_type) = notebook_job_output(result)
 
