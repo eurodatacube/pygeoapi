@@ -29,13 +29,14 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime
 from http import HTTPStatus
 import logging
 import re
 import time
-from typing import Dict, Optional, Tuple, Any
-from dataclasses import dataclass
+from typing import Dict, Optional, Tuple, Any, TypedDict, cast, List
+import os
 
 from kubernetes import client as k8s_client, config as k8s_config
 import kubernetes.client.rest
@@ -73,6 +74,17 @@ class KubernetesProcessor(BaseProcessor):
         )
 
 
+JobDict = TypedDict(
+    "JobDict",
+    {
+        "status": str,
+        "result-link": str,
+        "result-notebook": str,
+    },
+    total=False,
+)
+
+
 class KubernetesManager(BaseManager):
     def __init__(self, manager_def: Dict) -> None:
         super().__init__(manager_def)
@@ -86,7 +98,7 @@ class KubernetesManager(BaseManager):
         self.core_api = k8s_client.CoreV1Api()
         self.namespace = current_namespace()
 
-    def get_jobs(self, processid=None, status=None):
+    def get_jobs(self, processid=None, status=None) -> List[JobDict]:
         """
         Get jobs
 
@@ -108,7 +120,7 @@ class KubernetesManager(BaseManager):
             if is_k8s_job_name(k8s_job.metadata.name)
         ]
 
-    def get_job_result(self, processid, jobid) -> Optional[Dict]:
+    def get_job_result(self, processid, jobid) -> Optional[JobDict]:
         """
         Get a single job
 
@@ -179,7 +191,6 @@ class KubernetesManager(BaseManager):
         ):
             return (None, None, None)
         else:
-            # NOTE: this assumes that notebooks are the only output type
             (output, content_type) = notebook_job_output(result)
 
             return (job_status, output, content_type)
@@ -193,6 +204,9 @@ class KubernetesManager(BaseManager):
 
         :returns: `bool` of status result
         """
+        result = self.get_job_result(processid=processid, jobid=job_id)
+        # NOTE: this assumes that we have user home under the same path as jupyter
+        os.remove(result["result-notebook"])
 
         try:
             self.batch_v1.delete_namespaced_job(
@@ -298,7 +312,7 @@ class KubernetesManager(BaseManager):
         label_selector = ",".join(
             f"{key}={value}" for key, value in job.spec.selector.match_labels.items()
         )
-        pods = self.core_api.list_namespaced_pod(
+        pods: k8s_client.V1PodList = self.core_api.list_namespaced_pod(
             namespace=self.namespace, label_selector=label_selector
         )
         if pods.items:
@@ -351,7 +365,7 @@ def job_status_from_k8s(status: k8s_client.V1JobStatus) -> JobStatus:
         return JobStatus.accepted
 
 
-def job_from_k8s(job: k8s_client.V1Job, message: Optional[str]) -> Dict[str, str]:
+def job_from_k8s(job: k8s_client.V1Job, message: Optional[str]) -> JobDict:
     # annotations is broken in the k8s library, it's None when it is empty
     annotations = job.metadata.annotations or {}
     metadata_from_annotation = {
@@ -363,23 +377,22 @@ def job_from_k8s(job: k8s_client.V1Job, message: Optional[str]) -> Dict[str, str
     status = job_status_from_k8s(job.status)
     completion_time = get_completion_time(job, status)
 
-    computed_metadata = {
-        # NOTE: this is passed as string as compatibility with base manager
-        "status": status.value,
-        "message": message if message else "",
-        "progress": "1",  # default values in case we don't get them from metadata (yet)
-        "process_end_datetime": (
-            completion_time.strftime(DATETIME_FORMAT) if completion_time else None
-        ),
-    }
-
-    return {
-        # need this key in order not to crash, overridden by metadata:
-        "identifier": "",
-        "process_start_datetime": "",
-        **computed_metadata,
-        **metadata_from_annotation,
-    }
+    return cast(
+        JobDict,
+        {
+            # need this key in order not to crash, overridden by metadata:
+            "identifier": "",
+            "process_start_datetime": "",
+            # NOTE: this is passed as string as compatibility with base manager
+            "status": status.value,
+            "message": message if message else "",
+            "progress": "1",  # default values in case we don't get them from metadata
+            "process_end_datetime": (
+                completion_time.strftime(DATETIME_FORMAT) if completion_time else None
+            ),
+            **metadata_from_annotation,
+        },
+    )
 
 
 def get_completion_time(job: k8s_client.V1Job, status: JobStatus) -> Optional[datetime]:

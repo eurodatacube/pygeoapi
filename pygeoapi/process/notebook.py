@@ -47,6 +47,7 @@ import urllib.parse
 from kubernetes import client as k8s_client
 
 from pygeoapi.process.manager.kubernetes import (
+    JobDict,
     KubernetesProcessor,
     format_annotation_key,
 )
@@ -294,7 +295,7 @@ class PapermillNotebookKubernetesProcessor(KubernetesProcessor):
         return "<PapermillNotebookKubernetesProcessor> {}".format(self.name)
 
 
-def notebook_job_output(result: Dict) -> Tuple[Any, Optional[str]]:
+def notebook_job_output(result: JobDict) -> Tuple[Any, Optional[str]]:
 
     # NOTE: this assumes that we have user home under the same path as jupyter
     scraps = scrapbook.read_notebook(result["result-notebook"]).scraps
