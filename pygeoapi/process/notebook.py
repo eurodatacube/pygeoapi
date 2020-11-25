@@ -231,9 +231,6 @@ class PapermillNotebookKubernetesProcessor(KubernetesProcessor):
                 #       setup
                 "-i",
                 "-c",
-                # TODO: weird bug: removing this ls results in a PermissionError when
-                #       papermill later writes to the file..
-                "ls -la job-output && "
                 f"{install_papermill_kubernetes_job_progress} && "
                 f"papermill "
                 f'"{notebook_path}" '
