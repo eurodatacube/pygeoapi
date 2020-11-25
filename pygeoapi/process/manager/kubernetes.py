@@ -233,7 +233,7 @@ class KubernetesManager(BaseManager):
 
     def _execute_handler(
         self, p: BaseProcessor, job_id, data_dict: Dict
-    ) -> Tuple[Optional[Dict], JobStatus]:
+    ) -> Tuple[Optional[Any], JobStatus]:
         """
         Synchronous execution handler
 
@@ -258,9 +258,10 @@ class KubernetesManager(BaseManager):
             if status not in (JobStatus.running, JobStatus.accepted):
                 break
 
-        # TODO: handle content type here
+        # TODO: no output in sync mode since we don't have proper content type
+        #       handling here yet
         return (
-            self.get_job_output(processid=p.metadata["id"], job_id=job_id)[1],
+            "",
             status,
         )
 
