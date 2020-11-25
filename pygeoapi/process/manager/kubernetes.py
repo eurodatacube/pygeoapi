@@ -204,7 +204,10 @@ class KubernetesManager(BaseManager):
 
         :returns: `bool` of status result
         """
+        LOGGER.debug(f"Deleting job {job_id}")
+
         result = self.get_job_result(processid=processid, jobid=job_id)
+        LOGGER.debug(f"Deleting file {result['result-notebook']}")
         # NOTE: this assumes that we have user home under the same path as jupyter
         os.remove(result["result-notebook"])
 
