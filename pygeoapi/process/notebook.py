@@ -461,7 +461,7 @@ def s3_config(bucket_name, secret_name) -> ExtraConfig:
         containers=[
             k8s_client.V1Container(
                 name="s3mounter",
-                image="totycro/s3fs:0.4.0-1.86",
+                image="totycro/s3fs:0.5.0-1.86",
                 # we need to detect the end of the job here, this container
                 # must end for the job to be considered done by k8s
                 # 'papermill' is the comm name of the process
@@ -492,7 +492,7 @@ def s3_config(bucket_name, secret_name) -> ExtraConfig:
                 env=[
                     k8s_client.V1EnvVar(name="S3FS_ARGS", value="-oallow_other"),
                     k8s_client.V1EnvVar(name="UID", value="1000"),
-                    k8s_client.V1EnvVar(name="GID", value="2014"),
+                    k8s_client.V1EnvVar(name="GID", value="100"),
                     k8s_client.V1EnvVar(
                         name="AWS_S3_ACCESS_KEY_ID",
                         value_from=k8s_client.V1EnvVarSource(
