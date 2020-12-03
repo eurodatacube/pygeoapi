@@ -158,7 +158,7 @@ def test_no_s3_bucket_by_default(papermill_processor, create_pod_kwargs):
 
 def test_s3_bucket_present_when_requested(create_pod_kwargs):
     processor = _create_processor(
-        {"s3": {"bucket_name": "example", "secret_name": "example"}}
+        {"s3": {"bucket_name": "example", "secret_name": "example", "s3_url": ""}}
     )
     job_pod_spec = processor.create_job_pod_spec(**create_pod_kwargs)
     assert "s3mounter" in [c.name for c in job_pod_spec.pod_spec.containers]

@@ -215,6 +215,7 @@ class PapermillNotebookKubernetesProcessor(KubernetesProcessor):
                 yield s3_config(
                     bucket_name=self.s3["bucket_name"],
                     secret_name=self.s3["secret_name"],
+                    s3_url=self.s3["s3_url"],
                 )
 
         extra_config = functools.reduce(operator.add, extra_configs())
@@ -441,7 +442,7 @@ def extra_pvc_config(extra_pvc: Dict) -> ExtraConfig:
     )
 
 
-def s3_config(bucket_name, secret_name) -> ExtraConfig:
+def s3_config(bucket_name, secret_name, s3_url) -> ExtraConfig:
     s3_user_bucket_volume_name = "s3-user-bucket"
     return ExtraConfig(
         volume_mounts=[
@@ -518,7 +519,7 @@ def s3_config(bucket_name, secret_name) -> ExtraConfig:
                     k8s_client.V1EnvVar(name="TINI_SUBREAPER", value="1"),
                     k8s_client.V1EnvVar(
                         name="AWS_S3_URL",
-                        value="https://s3-eu-central-1.amazonaws.com",
+                        value=s3_url,
                     ),
                 ],
             )
