@@ -32,7 +32,8 @@
 Returns content from plugins and sets reponses
 """
 
-from datetime import datetime, timezone
+from datetime import datetime
+from functools import partial
 import json
 import logging
 import os
@@ -63,7 +64,8 @@ from pygeoapi.provider.tile import (ProviderTileNotFoundError,
 from pygeoapi.util import (dategetter, filter_dict_by_key_value,
                            get_provider_by_type, get_provider_default,
                            get_safe_filepath, get_typed_value, JobStatus,
-                           json_serial, render_j2_template, TEMPLATES, to_json)
+                           json_serial, render_j2_template, str2bool, TEMPLATES,
+                           to_json)
 
 LOGGER = logging.getLogger(__name__)
 
@@ -83,7 +85,7 @@ CONFORMANCE = [
     'http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/geojson',
     'http://www.opengis.net/spec/ogcapi_coverages-1/1.0/conf/core',
     'http://www.opengis.net/spec/ogcapi-coverages-1/1.0/conf/oas30',
-    'http://www.opengis.net/spec/ogcapi-coverages-1/1.0/conf/html'
+    'http://www.opengis.net/spec/ogcapi-coverages-1/1.0/conf/html',
     'http://www.opengis.net/spec/ogcapi-tiles-1/1.0/req/core',
     'http://www.opengis.net/spec/ogcapi-tiles-1/1.0/req/collections'
 ]
@@ -721,7 +723,8 @@ class API:
 
         properties = []
         reserved_fieldnames = ['bbox', 'f', 'limit', 'startindex',
-                               'resulttype', 'datetime', 'sortby']
+                               'resulttype', 'datetime', 'sortby',
+                               'properties', 'skipGeometry']
         formats = FORMATS
         formats.extend(f.lower() for f in PLUGINS['formatter'].keys())
 
@@ -897,6 +900,31 @@ class API:
         else:
             sortby = []
 
+        LOGGER.debug('processing properties parameter')
+        val = args.get('properties')
+
+        if val is not None:
+            select_properties = val.split(',')
+            properties_to_check = set(p.properties) | set(p.fields.keys())
+
+            if (len(list(set(select_properties) -
+                         set(properties_to_check))) > 0):
+                exception = {
+                    'code': 'InvalidParameterValue',
+                    'description': 'unknown properties specified'
+                }
+                LOGGER.error(exception)
+                return headers_, 400, to_json(exception, self.pretty_print)
+        else:
+            select_properties = []
+
+        LOGGER.debug('processing skipGeometry parameter')
+        val = args.get('skipGeometry')
+        if val is not None:
+            skip_geometry = str2bool(val)
+        else:
+            skip_geometry = False
+
         LOGGER.debug('Querying provider')
         LOGGER.debug('startindex: {}'.format(startindex))
         LOGGER.debug('limit: {}'.format(limit))
@@ -904,12 +932,16 @@ class API:
         LOGGER.debug('sortby: {}'.format(sortby))
         LOGGER.debug('bbox: {}'.format(bbox))
         LOGGER.debug('datetime: {}'.format(datetime_))
+        LOGGER.debug('properties: {}'.format(select_properties))
+        LOGGER.debug('skipGeometry: {}'.format(skip_geometry))
 
         try:
             content = p.query(startindex=startindex, limit=limit,
                               resulttype=resulttype, bbox=bbox,
-                              datetime=datetime_, properties=properties,
-                              sortby=sortby)
+                              datetime_=datetime_, properties=properties,
+                              sortby=sortby,
+                              select_properties=select_properties,
+                              skip_geometry=skip_geometry)
         except ProviderConnectionError as err:
             exception = {
                 'code': 'NoApplicableCode',
@@ -1266,7 +1298,7 @@ class API:
             LOGGER.error(exception)
             return headers_, 400, to_json(exception, self.pretty_print)
 
-        query_args['datetime'] = datetime_
+        query_args['datetime_'] = datetime_
 
         if 'f' in args:
             query_args['format_'] = format_ = args['f']
@@ -2555,12 +2587,12 @@ def validate_bbox(value=None):
 
 def validate_datetime(resource_def, datetime_=None):
     """
-    Helper function to validate bbox parameter
+    Helper function to validate temporal parameter
 
     :param resource_def: `dict` of configuration resource definition
     :param datetime_: `str` of datetime parameter
 
-    :returns: datetime object(s)
+    :returns: `str` datetime_ input, if valid
     """
 
     # TODO: pass datetime to query as a `datetime` object
@@ -2573,6 +2605,12 @@ def validate_datetime(resource_def, datetime_=None):
     datetime_invalid = False
 
     if (datetime_ is not None and 'temporal' in resource_def):
+
+        dateparse_begin = partial(dateparse, default=datetime.min)
+        dateparse_end = partial(dateparse, default=datetime.max)
+        unix_epoch = datetime(1970, 1, 1, 0, 0, 0)
+        dateparse_ = partial(dateparse, default=unix_epoch)
+
         te = resource_def['temporal']
 
         if te['begin'] is not None and te['begin'].tzinfo is None:
@@ -2585,36 +2623,35 @@ def validate_datetime(resource_def, datetime_=None):
             LOGGER.debug('Validating time windows')
             datetime_begin, datetime_end = datetime_.split('/')
             if datetime_begin != '..':
-                datetime_begin = dateparse(datetime_begin)
+                datetime_begin = dateparse_begin(datetime_begin)
                 if datetime_begin.tzinfo is None:
                     datetime_begin = datetime_begin.replace(
                         tzinfo=pytz.UTC)
 
             if datetime_end != '..':
-                datetime_end = dateparse(datetime_end)
+                datetime_end = dateparse_end(datetime_end)
                 if datetime_end.tzinfo is None:
                     datetime_end = datetime_end.replace(tzinfo=pytz.UTC)
 
-            if te['begin'] is not None and datetime_begin != '..':
-                if datetime_begin < te['begin']:
-                    datetime_invalid = True
-
-            if te['end'] is not None and datetime_end != '..':
-                if datetime_end > te['end']:
-                    datetime_invalid = True
+            datetime_invalid = any([
+                (te['begin'] is not None and datetime_begin != '..' and
+                    datetime_begin < te['begin']),
+                (te['end'] is not None and datetime_end != '..' and
+                    datetime_end > te['end'])
+            ])
 
         else:  # time instant
-            datetime__ = dateparse(datetime_)
+            LOGGER.debug('detected time instant')
+            datetime__ = dateparse_(datetime_)
             if datetime__ != '..':
                 if datetime__.tzinfo is None:
                     datetime__ = datetime__.replace(tzinfo=pytz.UTC)
-            LOGGER.debug('detected time instant')
-            if te['begin'] is not None and datetime__ != '..':
-                if datetime__ < te['begin']:
-                    datetime_invalid = True
-            if te['end'] is not None and datetime__ != '..':
-                if datetime__ > te['end']:
-                    datetime_invalid = True
+            datetime_invalid = any([
+                (te['begin'] is not None and datetime__ != '..' and
+                    datetime__ < te['begin']),
+                (te['end'] is not None and datetime__ != '..' and
+                    datetime__ > te['end'])
+            ])
 
     if datetime_invalid:
         msg = 'datetime parameter out of range'
