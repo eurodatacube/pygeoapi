@@ -32,7 +32,7 @@
 Returns content from plugins and sets reponses
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import partial
 import json
 import logging
