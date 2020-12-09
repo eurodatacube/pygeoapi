@@ -236,7 +236,9 @@ class PapermillNotebookKubernetesProcessor(KubernetesProcessor):
                 #       papermill later writes to the file. This only happens sometimes,
                 #       but when it occurs, it does so consistently. I'm leaving that in
                 #       for now since that command doesn't do any harm.
-                "ls -la job-output && "
+                #       (it will be a problem if there are ever a lot of output files,
+                #       especially on s3fs)
+                f"ls -la {self.output_directory} && "
                 f"papermill "
                 f'"{notebook_path}" '
                 f'"{output_notebook}" '
