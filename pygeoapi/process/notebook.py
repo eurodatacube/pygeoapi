@@ -232,6 +232,11 @@ class PapermillNotebookKubernetesProcessor(KubernetesProcessor):
                 #       setup
                 "-i",
                 "-c",
+                # TODO: weird bug: removing this ls results in a PermissionError when
+                #       papermill later writes to the file. This only happens sometimes,
+                #       but when it occurs, it does so consistently. I'm leaving that in
+                #       for now since that command doesn't do any harm.
+                "ls -la job-output && "
                 f"papermill "
                 f'"{notebook_path}" '
                 f'"{output_notebook}" '
