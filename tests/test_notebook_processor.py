@@ -199,3 +199,13 @@ def test_output_path_owned_by_job_runner_group_and_group_writable(
     assert output_notebook.stat().st_gid == JOB_RUNNER_GROUP_ID
 
     assert output_notebook.stat().st_mode & stat.S_IWGRP  # write group
+
+
+def test_custom_kernel_is_used_on_request(papermill_processor, create_pod_kwargs):
+    my_kernel = "my-kernel"
+
+    create_pod_kwargs = copy.deepcopy(create_pod_kwargs)
+    create_pod_kwargs["data"]["kernel"] = my_kernel
+    job_pod_spec = papermill_processor.create_job_pod_spec(**create_pod_kwargs)
+
+    assert f"-k {my_kernel}" in str(job_pod_spec.pod_spec.containers[0].command)
