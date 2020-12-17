@@ -209,3 +209,9 @@ def test_custom_kernel_is_used_on_request(papermill_processor, create_pod_kwargs
     job_pod_spec = papermill_processor.create_job_pod_spec(**create_pod_kwargs)
 
     assert f"-k {my_kernel}" in str(job_pod_spec.pod_spec.containers[0].command)
+
+
+def test_no_kernel_specified_if_not_detected(papermill_processor, create_pod_kwargs):
+    job_pod_spec = papermill_processor.create_job_pod_spec(**create_pod_kwargs)
+
+    assert "-k " not in str(job_pod_spec.pod_spec.containers[0].command)

@@ -163,13 +163,15 @@ class PapermillNotebookKubernetesProcessor(KubernetesProcessor):
 
         # TODO: allow override from parameter
         image = self.default_image
+        image_name = image.split(":")[0]
 
-        is_gpu = image.split(":")[0] == "eurodatacube/jupyter-user-g"
+        is_gpu = image_name == "eurodatacube/jupyter-user-g"
 
-        kernel = data.get(
-            "kernel",
-            "edc-gpu" if is_gpu else "edc",
-        )
+        default_kernel = {
+            "eurodatacube/jupyter-user": "edc",
+            "eurodatacube/jupyter-user-g": "edc-gpu",
+        }.get(image_name, "")
+        kernel: str = data.get("kernel", default_kernel)
 
         notebook_dir = working_dir(PurePath(notebook_path))
 
