@@ -180,6 +180,8 @@ class KubernetesManager(BaseManager):
 
         :returns: tuple of: JobStatus `Enum`, and
         """
+        # NOTE: it's a breach of abstraction to use notebook-related code here,
+        #       but it's useful now and complicated approach doesn't seem warrented
         # avoid import loop
         from pygeoapi.process.notebook import notebook_job_output
 

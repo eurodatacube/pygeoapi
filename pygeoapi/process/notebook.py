@@ -35,6 +35,7 @@ from datetime import datetime
 import functools
 import json
 import logging
+import mimetypes
 import operator
 from pathlib import PurePath, Path
 import os
@@ -313,6 +314,12 @@ def notebook_job_output(result: JobDict) -> Tuple[Any, Optional[str]]:
 
     if not scraps:
         return ({"result-link": result["result-link"]}, None)
+    elif (result_file_scrap := scraps.get("result-file")) :
+        # if available, prefer file output
+        # NOTE: use python-magic or something more advanced if necessary
+        mime_type = mimetypes.guess_type(result_file_scrap.data)[0]
+        contents = open(result_file_scrap.data, "rb").read()
+        return (contents, mime_type)
     elif len(scraps) == 1:
         # if there's only one item, return it right away with correct content type.
         # this way, you can show e.g. an image in the browser.
@@ -322,8 +329,6 @@ def notebook_job_output(result: JobDict) -> Tuple[Any, Optional[str]]:
         # TODO: support serializing multiple scraps, possibly according to result schema:
         # https://github.com/opengeospatial/wps-rest-binding/blob/master/core/openapi/schemas/result.yaml
         return serialize_single_scrap(next(iter(scraps.values())))
-
-        # return scraps, None
 
 
 def serialize_single_scrap(scrap: scrapbook.scraps.Scrap) -> Tuple[Any, Optional[str]]:
