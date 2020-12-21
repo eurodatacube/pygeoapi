@@ -37,7 +37,7 @@ import stat
 from typing import Dict
 
 from pygeoapi.process.notebook import (
-    JOB_RUNNER_GROUP_ID,
+    CONTAINER_HOME, JOB_RUNNER_GROUP_ID,
     PapermillNotebookKubernetesProcessor,
     notebook_job_output,
 )
@@ -281,19 +281,16 @@ def test_notebook_output_returns_a_text_scrap(generate_scrap_notebook, job_dict)
     assert output == (payload, None)
 
 
-def test_notebook_output_resolves_files_from_scrap(
-    generate_scrap_notebook,
-    job_dict,
-    tmp_path,
-):
+def test_notebook_output_resolves_files_from_scrap(generate_scrap_notebook, job_dict):
+    filename = 'a.tif'
+
     tif_payload = b"II*\x00\x08\x00\x00\x00\x10\x00\x00\x01\x03\x00\x01\x00"
-    data_file = tmp_path / "a.tif"
-    data_file.write_bytes(tif_payload)
-    nb_filepath = generate_scrap_notebook(
-        output_name="result-file", data=str(data_file)
-    )
+    nb_filepath = generate_scrap_notebook(output_name="result-file", data=filename)
     job_dict["result-notebook"] = str(nb_filepath)
+    (CONTAINER_HOME / filename).write_bytes(tif_payload)
 
     output = notebook_job_output(job_dict)
+
+    (CONTAINER_HOME / filename).unlink()
 
     assert output == (tif_payload, "image/tiff")

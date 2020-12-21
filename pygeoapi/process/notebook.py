@@ -116,7 +116,7 @@ PROCESS_METADATA = {
 }
 
 
-CONTAINER_HOME = PurePath("/home/jovyan")
+CONTAINER_HOME = Path("/home/jovyan")
 
 # this just needs to be any unique id
 JOB_RUNNER_GROUP_ID = 20200
@@ -308,7 +308,8 @@ class PapermillNotebookKubernetesProcessor(KubernetesProcessor):
 def notebook_job_output(result: JobDict) -> Tuple[Any, Optional[str]]:
 
     # NOTE: this assumes that we have user home under the same path as jupyter
-    scraps = scrapbook.read_notebook(result["result-notebook"]).scraps
+    notebook_path = Path(result["result-notebook"])
+    scraps = scrapbook.read_notebook(str(notebook_path)).scraps
 
     LOGGER.debug("Retrieved scraps from notebook: %s", scraps)
 
@@ -316,10 +317,15 @@ def notebook_job_output(result: JobDict) -> Tuple[Any, Optional[str]]:
         return ({"result-link": result["result-link"]}, None)
     elif (result_file_scrap := scraps.get("result-file")) :
         # if available, prefer file output
+        specified_path = Path(result_file_scrap.data)
+        result_file_path = (
+            specified_path
+            if specified_path.is_absolute()
+            else CONTAINER_HOME / specified_path
+        )
         # NOTE: use python-magic or something more advanced if necessary
-        mime_type = mimetypes.guess_type(result_file_scrap.data)[0]
-        contents = open(result_file_scrap.data, "rb").read()
-        return (contents, mime_type)
+        mime_type = mimetypes.guess_type(result_file_path)[0]
+        return (result_file_path.read_bytes(), mime_type)
     elif len(scraps) == 1:
         # if there's only one item, return it right away with correct content type.
         # this way, you can show e.g. an image in the browser.
