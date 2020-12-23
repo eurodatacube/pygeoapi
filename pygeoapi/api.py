@@ -2099,7 +2099,7 @@ tiles/{{{}}}/{{{}}}/{{{}}}/{{{}}}?f=mvt'
         headers_['Location'] = url
 
         outputs = status = None
-        is_async = data.get('mode', 'auto') == 'async'
+        is_async = data.get('mode', 'auto') != 'sync'
 
         if is_async:
             LOGGER.debug('Asynchronous request mode detected')
