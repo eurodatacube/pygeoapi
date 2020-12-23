@@ -27,6 +27,8 @@
 #
 # =================================================================
 
+from pygeoapi.util import JobStatus
+from pygeoapi.process.notebook import PapermillNotebookKubernetesProcessor
 import pytest
 from unittest import mock
 from kubernetes import client as k8s_client
@@ -59,6 +61,15 @@ def mock_read_job():
         ),
     ):
         yield
+
+
+@pytest.fixture()
+def mock_create_job():
+    with mock.patch(
+        "pygeoapi.process.manager.kubernetes.k8s_client.BatchV1Api.create_namespaced_job",
+        return_value=None,
+    ) as mocker:
+        yield mocker
 
 
 @pytest.fixture()
@@ -116,3 +127,36 @@ def test_deleting_job_deletes_in_k8s_and_on_nb_file_on_disc(
     assert result
     mock_delete_job.assert_called_once()
     mock_os_remove.assert_called_once()
+
+
+@pytest.fixture
+def papermill_processor() -> PapermillNotebookKubernetesProcessor:
+    return PapermillNotebookKubernetesProcessor(
+        processor_def={
+            "name": "test",
+            "s3": None,
+            "default_image": "example",
+            "extra_pvcs": [],
+            "home_volume_claim_name": "user",
+            "image_pull_secret": "",
+            "jupyter_base_url": "",
+            "output_directory": "/home/jovyan/tmp",
+        }
+    )
+
+
+def test_execute_process_starts_job(
+    manager: KubernetesManager, papermill_processor, mock_create_job,
+):
+    job_id = "abc"
+    result = manager.execute_process(
+        p=papermill_processor,
+        job_id=job_id,
+        data_dict={'notebook': 'a.ipynb'},
+        is_async=True,
+    )
+    assert result == (None, JobStatus.accepted)
+
+    job: k8s_client.V1Job = mock_create_job.mock_calls[0][2]['body']
+    assert job_id in job.metadata.name
+    assert job.metadata.annotations['pygeoapi.io/identifier'] == job_id
