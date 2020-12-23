@@ -88,6 +88,9 @@ JobDict = TypedDict(
 class KubernetesManager(BaseManager):
     def __init__(self, manager_def: Dict) -> None:
         super().__init__(manager_def)
+
+        self.is_async = True
+
         try:
             k8s_config.load_kube_config()
         except Exception:
