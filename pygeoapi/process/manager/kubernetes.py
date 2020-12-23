@@ -170,7 +170,7 @@ class KubernetesManager(BaseManager):
 
     def get_job_result(
         self, process_id, job_id
-    ) -> Tuple[Optional[JobStatus], Optional[Any], Optional[str]]:
+    ) -> Tuple[Optional[Any], Optional[str]]:
         """
         Returns the actual output from a finished process, or else None if the
         process has not finished execution.
@@ -189,16 +189,10 @@ class KubernetesManager(BaseManager):
 
         job = self.get_job(process_id=process_id, job_id=job_id)
 
-        if job is None:
-            return (None, None, None)
-        elif (job_status := JobStatus[job["status"]]) != JobStatus.successful:
-            return (job_status, None, None)
+        if job is None or (JobStatus[job["status"]]) != JobStatus.successful:
+            return (None, None)
         else:
-            (output, content_type) = notebook_job_output(job)
-
-            return (job_status, output, content_type)
-
-            # TODO: figure out how to return content type in a better way here
+            return notebook_job_output(job)
 
     def delete_job(self, process_id, job_id):
         """
