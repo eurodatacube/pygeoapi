@@ -100,13 +100,13 @@ class KubernetesManager(BaseManager):
 
     def get_jobs(self, processid=None, status=None) -> List[JobDict]:
         """
-        Get jobs
+        Get process jobs, optionally filtered by status
 
-        :param processid: process identifier
+        :param process_id: process identifier
         :param status: job status (accepted, running, successful,
                        failed, results) (default is all)
 
-        :returns: list of jobs (identifier, status, process identifier)
+        :returns: `list` of jobs (identifier, status, process identifier)
         """
 
         k8s_jobs: k8s_client.V1JobList = self.batch_v1.list_namespaced_job(
@@ -120,18 +120,18 @@ class KubernetesManager(BaseManager):
             if is_k8s_job_name(k8s_job.metadata.name)
         ]
 
-    def get_job_result(self, processid, jobid) -> Optional[JobDict]:
+    def get_job(self, process_id, job_id) -> Optional[JobDict]:
         """
-        Get a single job
+        Returns the actual output from a completed process
 
-        :param processid: process identifier
-        :param jobid: job identifier
+        :param process_id: process identifier
+        :param job_id: job identifier
 
         :returns: `dict`  # `pygeoapi.process.manager.Job`
         """
         try:
             k8s_job: k8s_client.V1Job = self.batch_v1.read_namespaced_job(
-                name=k8s_job_name(job_id=jobid),
+                name=k8s_job_name(job_id=job_id),
                 namespace=self.namespace,
             )
             return job_from_k8s(k8s_job, self._job_message(k8s_job))
@@ -165,11 +165,8 @@ class KubernetesManager(BaseManager):
         # we could update the metadata by changing the job annotations
         raise NotImplementedError("Currently there's no use case for updating k8s jobs")
 
-    def get_job_status(self, p, job_id, data_dict):
-        """"""
-
-    def get_job_output(
-        self, processid, job_id
+    def get_job_result(
+        self, process_id, job_id
     ) -> Tuple[Optional[JobStatus], Optional[Any], Optional[str]]:
         """
         Returns the actual output from a finished process, or else None if the
@@ -180,23 +177,27 @@ class KubernetesManager(BaseManager):
 
         :returns: tuple of: JobStatus `Enum`, and
         """
+        # TODO: unify return value with api.py, tindydb_.py
+
         # NOTE: it's a breach of abstraction to use notebook-related code here,
         #       but it's useful now and complicated approach doesn't seem warrented
         # avoid import loop
         from pygeoapi.process.notebook import notebook_job_output
 
-        result = self.get_job_result(processid=processid, jobid=job_id)
+        job = self.get_job(process_id=process_id, job_id=job_id)
 
-        if result is None:
+        if job is None:
             return (None, None, None)
-        elif (job_status := JobStatus[result["status"]]) != JobStatus.successful:
+        elif (job_status := JobStatus[job["status"]]) != JobStatus.successful:
             return (job_status, None, None)
         else:
-            (output, content_type) = notebook_job_output(result)
+            (output, content_type) = notebook_job_output(job)
 
             return (job_status, output, content_type)
 
-    def delete_job(self, processid, job_id):
+            # TODO: figure out how to return content type in a better way here
+
+    def delete_job(self, process_id, job_id):
         """
         Deletes a job
 
@@ -207,10 +208,10 @@ class KubernetesManager(BaseManager):
         """
         LOGGER.debug(f"Deleting job {job_id}")
 
-        result = self.get_job_result(processid=processid, jobid=job_id)
-        LOGGER.debug(f"Deleting file {result['result-notebook']}")
+        job = self.get_job(process_id=process_id, job_id=job_id)
+        LOGGER.debug(f"Deleting file {job['result-notebook']}")
         # NOTE: this assumes that we have user home under the same path as jupyter
-        os.remove(result["result-notebook"])
+        os.remove(job["result-notebook"])
 
         try:
             self.batch_v1.delete_namespaced_job(
@@ -225,14 +226,7 @@ class KubernetesManager(BaseManager):
         else:
             return True
 
-    def delete_jobs(self, max_jobs, older_than):
-        """
-        TODO
-        """
-
-        raise NotImplementedError()
-
-    def _execute_handler(
+    def _execute_handler_sync(
         self, p: BaseProcessor, job_id, data_dict: Dict
     ) -> Tuple[Optional[Any], JobStatus]:
         """
@@ -249,13 +243,13 @@ class KubernetesManager(BaseManager):
         while True:
             # TODO: investigate if list_namespaced_job(watch=True) can be used here
             time.sleep(2)
-            result = self.get_job_result(processid=p.metadata["id"], jobid=job_id)
-            if not result:
+            job = self.get_job(process_id=p.metadata["id"], job_id=job_id)
+            if not job:
                 LOGGER.warning(f"Job {job_id} has vanished")
                 status = JobStatus.failed
                 break
 
-            status = JobStatus[result["status"]]
+            status = JobStatus[job["status"]]
             if status not in (JobStatus.running, JobStatus.accepted):
                 break
 
