@@ -2315,9 +2315,14 @@ tiles/{{{}}}/{{{}}}/{{{}}}/{{{}}}?f=mvt'
 
         job_output = self.manager.get_job_result(process_id, job_id)
 
+        if isinstance(job_output, tuple):
+            job_output, content_type = job_output
+        else:
+            content_type = None
+
         format_ = check_format(args, headers)
 
-        if format_ == 'html':
+        if not content_type and format_ == 'html':
             headers_['Content-Type'] = 'text/html'
             data = {
                 'process': {
@@ -2330,8 +2335,17 @@ tiles/{{{}}}/{{{}}}/{{{}}}/{{{}}}?f=mvt'
                                           data)
             return headers_, 200, response
 
-        content = json.dumps(job_output, sort_keys=True, indent=4,
-                             default=json_serial)
+        if content_type:
+            headers_['Content-Type'] = content_type
+
+        # json-serialize non-binary output
+        content = (
+            job_output
+            if isinstance(job_output, bytes)
+            else json.dumps(
+                job_output, sort_keys=True, indent=4, default=json_serial
+            )
+        )
 
         return headers_, 200, content
 
