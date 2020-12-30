@@ -278,7 +278,7 @@ def test_notebook_output_returns_a_text_scrap(generate_scrap_notebook, job_dict)
 
     output = notebook_job_output(job_dict)
 
-    assert output == (payload, None)
+    assert output == (None, payload)
 
 
 def test_notebook_output_resolves_files_from_scrap(generate_scrap_notebook, job_dict):
@@ -293,4 +293,4 @@ def test_notebook_output_resolves_files_from_scrap(generate_scrap_notebook, job_
 
     (CONTAINER_HOME / filename).unlink()
 
-    assert output == (tif_payload, "image/tiff")
+    assert output == ("image/tiff", tif_payload)

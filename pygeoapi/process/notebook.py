@@ -305,7 +305,7 @@ class PapermillNotebookKubernetesProcessor(KubernetesProcessor):
         return "<PapermillNotebookKubernetesProcessor> {}".format(self.name)
 
 
-def notebook_job_output(result: JobDict) -> Tuple[Any, Optional[str]]:
+def notebook_job_output(result: JobDict) -> Tuple[Optional[str], Any]:
 
     # NOTE: this assumes that we have user home under the same path as jupyter
     notebook_path = Path(result["result-notebook"])
@@ -314,7 +314,7 @@ def notebook_job_output(result: JobDict) -> Tuple[Any, Optional[str]]:
     LOGGER.debug("Retrieved scraps from notebook: %s", scraps)
 
     if not scraps:
-        return ({"result-link": result["result-link"]}, None)
+        return (None, {"result-link": result["result-link"]})
     elif (result_file_scrap := scraps.get("result-file")) :
         # if available, prefer file output
         specified_path = Path(result_file_scrap.data)
@@ -325,7 +325,7 @@ def notebook_job_output(result: JobDict) -> Tuple[Any, Optional[str]]:
         )
         # NOTE: use python-magic or something more advanced if necessary
         mime_type = mimetypes.guess_type(result_file_path)[0]
-        return (result_file_path.read_bytes(), mime_type)
+        return (mime_type, result_file_path.read_bytes())
     elif len(scraps) == 1:
         # if there's only one item, return it right away with correct content type.
         # this way, you can show e.g. an image in the browser.
@@ -337,7 +337,7 @@ def notebook_job_output(result: JobDict) -> Tuple[Any, Optional[str]]:
         return serialize_single_scrap(next(iter(scraps.values())))
 
 
-def serialize_single_scrap(scrap: scrapbook.scraps.Scrap) -> Tuple[Any, Optional[str]]:
+def serialize_single_scrap(scrap: scrapbook.scraps.Scrap) -> Tuple[Optional[str], Any]:
 
     text_mime = "text/plain"
 
@@ -354,11 +354,11 @@ def serialize_single_scrap(scrap: scrapbook.scraps.Scrap) -> Tuple[Any, Optional
             )
             item = scrap.display["data"][mime_type]
             encoded_output = item if mime_type == text_mime else b64decode(item)
-            return (encoded_output, mime_type)
+            return (mime_type, encoded_output)
         else:
-            return scrap.display, None
+            return None, scrap.display
     else:
-        return scrap.data, None
+        return None, scrap.data
 
 
 def default_output_path(notebook_path: str) -> str:
