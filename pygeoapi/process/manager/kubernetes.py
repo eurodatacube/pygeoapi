@@ -172,16 +172,13 @@ class KubernetesManager(BaseManager):
         self, process_id, job_id
     ) -> Tuple[Optional[Any], Optional[str]]:
         """
-        Returns the actual output from a finished process, or else None if the
-        process has not finished execution.
+        Returns the actual output from a completed process
 
-        :param processid: process identifier
+        :param process_id: process identifier
         :param job_id: job identifier
 
-        :returns: tuple of: JobStatus `Enum`, and
+        :returns: `tuple` of mimetype and raw output
         """
-        # TODO: unify return value with api.py, tindydb_.py
-
         # NOTE: it's a breach of abstraction to use notebook-related code here,
         #       but it's useful now and complicated approach doesn't seem warrented
         # avoid import loop
@@ -278,7 +275,7 @@ class KubernetesManager(BaseManager):
 
         annotations = {
             "identifier": job_id,
-            "process_start_datetime": datetime.utcnow().strftime(DATETIME_FORMAT),
+            "job_start_datetime": datetime.utcnow().strftime(DATETIME_FORMAT),
             **job_pod_spec.extra_annotations,
         }
 
@@ -378,12 +375,13 @@ def job_from_k8s(job: k8s_client.V1Job, message: Optional[str]) -> JobDict:
         {
             # need this key in order not to crash, overridden by metadata:
             "identifier": "",
-            "process_start_datetime": "",
+            "job_start_datetime": "",
             # NOTE: this is passed as string as compatibility with base manager
             "status": status.value,
+            "mimetype": None,  # we don't know this in general
             "message": message if message else "",
             "progress": "1",  # default values in case we don't get them from metadata
-            "process_end_datetime": (
+            "job_end_datetime": (
                 completion_time.strftime(DATETIME_FORMAT) if completion_time else None
             ),
             **metadata_from_annotation,

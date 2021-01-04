@@ -606,11 +606,12 @@ class API:
 
             headers_['Content-Type'] = 'text/html'
             if dataset is not None:
-                content = render_j2_template(self.config, 'collection.html',
+                content = render_j2_template(self.config,
+                                             'collections/collection.html',
                                              fcm)
             else:
-                content = render_j2_template(self.config, 'collections.html',
-                                             fcm)
+                content = render_j2_template(self.config,
+                                             'collections/index.html', fcm)
 
             return headers_, 200, content
 
@@ -704,7 +705,8 @@ class API:
         if format_ == 'html':  # render
             queryables['title'] = self.config['resources'][dataset]['title']
             headers_['Content-Type'] = 'text/html'
-            content = render_j2_template(self.config, 'queryables.html',
+            content = render_j2_template(self.config,
+                                         'collections/queryables.html',
                                          queryables)
 
             return headers_, 200, content
@@ -1052,7 +1054,8 @@ class API:
             content['collections_path'] = '/'.join(path_info.split('/')[:-2])
             content['startindex'] = startindex
 
-            content = render_j2_template(self.config, 'items.html',
+            content = render_j2_template(self.config,
+                                         'collections/items/index.html',
                                          content)
             return headers_, 200, content
         elif format_ == 'csv':  # render
@@ -1208,7 +1211,8 @@ class API:
             headers_['Content-Type'] = 'text/html'
 
             content['title'] = collections[dataset]['title']
-            content = render_j2_template(self.config, 'item.html',
+            content = render_j2_template(self.config,
+                                         'collections/items/item.html',
                                          content)
             return headers_, 200, content
         elif format_ == 'jsonld':
@@ -1450,7 +1454,8 @@ class API:
         elif format_ == 'html':
             data['id'] = dataset
             data['title'] = self.config['resources'][dataset]['title']
-            content = render_j2_template(self.config, 'domainset.html',
+            content = render_j2_template(self.config,
+                                         'collections/coverage/domainset.html',
                                          data)
             headers_['Content-Type'] = 'text/html'
             return headers_, 200, content
@@ -1514,7 +1519,8 @@ class API:
         elif format_ == 'html':
             data['id'] = dataset
             data['title'] = self.config['resources'][dataset]['title']
-            content = render_j2_template(self.config, 'rangetype.html',
+            content = render_j2_template(self.config,
+                                         'collections/coverage/rangetype.html',
                                          data)
             headers_['Content-Type'] = 'text/html'
             return headers_, 200, content
@@ -1638,7 +1644,8 @@ tiles/{{{}}}/{{{}}}/{{{}}}/{{{}}}?f=mvt'
             tiles['maxzoom'] = p.options['zoom']['max']
 
             headers_['Content-Type'] = 'text/html'
-            content = render_j2_template(self.config, 'tiles.html', tiles)
+            content = render_j2_template(self.config,
+                                         'collections/tiles/index.html', tiles)
 
             return headers_, 200, content
 
@@ -1839,7 +1846,8 @@ tiles/{{{}}}/{{{}}}/{{{}}}/{{{}}}?f=mvt'
             metadata['format'] = metadata_format
             headers_['Content-Type'] = 'text/html'
 
-            content = render_j2_template(self.config, 'tiles_metadata.html',
+            content = render_j2_template(self.config,
+                                         'collections/tiles/metadata.html',
                                          metadata)
 
             return headers_, 200, content
@@ -1903,13 +1911,21 @@ tiles/{{{}}}/{{{}}}/{{{}}}/{{{}}}?f=mvt'
                 link = {
                     'type': 'text/html',
                     'rel': 'collection',
-                    'href': jobs_url,
-                    'title': 'Collection of jobs for the {} process'.format(
-                        key),
+                    'href': '{}?f=html'.format(jobs_url),
+                    'title': 'jobs for this process as HTML',
                     'hreflang': self.config['server'].get('language', None)
                 }
-
                 p2['links'].append(link)
+
+                link = {
+                    'type': 'application/json',
+                    'rel': 'collection',
+                    'href': '{}?f=json'.format(jobs_url),
+                    'title': 'jobs for this process as JSON',
+                    'hreflang': self.config['server'].get('language', None)
+                }
+                p2['links'].append(link)
+
                 processes.append(p2)
 
         if process is not None:
@@ -1922,23 +1938,25 @@ tiles/{{{}}}/{{{}}}/{{{}}}/{{{}}}?f=mvt'
         if format_ == 'html':  # render
             headers_['Content-Type'] = 'text/html'
             if process is not None:
-                response = render_j2_template(self.config, 'process.html',
+                response = render_j2_template(self.config,
+                                              'processes/process.html',
                                               response)
             else:
-                response = render_j2_template(self.config, 'processes.html',
-                                              response)
+                response = render_j2_template(self.config,
+                                              'processes/index.html', response)
 
             return headers_, 200, response
 
         return headers_, 200, to_json(response, self.pretty_print)
 
-    def get_process_jobs(self, headers, args, process_id):
+    def get_process_jobs(self, headers, args, process_id, job_id=None):
         """
         Get process jobs
 
         :param headers: dict of HTTP headers
         :param args: dict of HTTP request parameters
         :param process_id: id of process
+        :param job_id: id of job
 
         :returns: tuple of headers, status code, content
         """
@@ -1971,26 +1989,78 @@ tiles/{{{}}}/{{{}}}/{{{}}}/{{{}}}?f=mvt'
         p = load_plugin('process', processes[process_id]['processor'])
 
         if self.manager:
-            jobs = sorted(self.manager.get_jobs(process_id),
-                          key=lambda k: k['process_start_datetime'],
-                          reverse=True)
+            if job_id is None:
+                jobs = sorted(self.manager.get_jobs(process_id),
+                              key=lambda k: k['job_start_datetime'],
+                              reverse=True)
+            else:
+                jobs = [self.manager.get_job(process_id, job_id)]
         else:
             LOGGER.debug('Process management not configured')
             jobs = []
 
+        serialized_jobs = []
+        for job_ in jobs:
+            job2 = {
+                'jobID': job_['identifier'],
+                'status': job_['status'],
+                'message': job_['message'],
+                'progress': job_['progress'],
+                'parameters': job_.get('parameters'),
+                'job_start_datetime': job_['job_start_datetime'],
+                'job_end_datetime': job_['job_end_datetime']
+            }
+
+            if JobStatus[job_['status']] in [
+               JobStatus.successful, JobStatus.running, JobStatus.accepted]:
+
+                job_result_url = '{}/processes/{}/jobs/{}/results'.format(
+                    self.config['server']['url'],
+                    process_id, job_['identifier'])
+
+                job2['links'] = [{
+                    'href': '{}?f=html'.format(job_result_url),
+                    'rel': 'about',
+                    'type': 'text/html',
+                    'title': 'results of job {} as HTML'.format(job_id)
+                }, {
+                    'href': '{}?f=json'.format(job_result_url),
+                    'rel': 'about',
+                    'type': 'application/json',
+                    'title': 'results of job {} as JSON'.format(job_id)
+                }]
+
+                if job_['mimetype'] not in ['application/json', 'text/html']:
+                    job2['links'].append({
+                        'href': job_result_url,
+                        'rel': 'about',
+                        'type': job_['mimetype'],
+                        'title': 'results of job {} as {}'.format(
+                            job_id, job_['mimetype'])
+                    })
+
+            serialized_jobs.append(job2)
+
+        if job_id is None:
+            j2_template = 'processes/jobs/index.html'
+        else:
+            serialized_jobs = serialized_jobs[0]
+            j2_template = 'processes/jobs/job.html'
+
         if format_ == 'html':
             headers_['Content-Type'] = 'text/html'
             data = {
-                'process': {'id': process_id, 'title': p.metadata['title']},
-                'jobs': jobs,
+                'process': {
+                    'id': process_id,
+                    'title': p.metadata['title']
+                },
+                'jobs': serialized_jobs,
                 'now': datetime.now(timezone.utc).strftime(DATETIME_FORMAT)
             }
-            response = render_j2_template(self.config, 'jobs.html', data)
+            response = render_j2_template(self.config, j2_template, data)
             return headers_, 200, response
 
-        response = [job['identifier'] for job in jobs]
-
-        return headers_, 200, to_json(response, self.pretty_print)
+        return headers_, 200, to_json(serialized_jobs, self.pretty_print)
 
     def execute_process(self, headers, args, data, process_id):
         """
@@ -2315,39 +2385,28 @@ tiles/{{{}}}/{{{}}}/{{{}}}/{{{}}}?f=mvt'
             LOGGER.info(exception)
             return headers_, 400, json.dumps(exception)
 
-        job_output = self.manager.get_job_result(process_id, job_id)
-
-        if isinstance(job_output, tuple):
-            job_output, content_type = job_output
-        else:
-            content_type = None
+        mimetype, job_output = self.manager.get_job_result(process_id, job_id)
 
         format_ = check_format(args, headers)
 
-        if not content_type and format_ == 'html':
-            headers_['Content-Type'] = 'text/html'
-            data = {
-                'process': {
-                    'id': process_id, 'title': process.metadata['title']
-                },
-                'job': {'id': job_id},
-                'result': job_output
-            }
-            response = render_j2_template(self.config, 'job_result.html',
-                                          data)
-            return headers_, 200, response
-
-        if content_type:
-            headers_['Content-Type'] = content_type
-
-        # json-serialize non-binary output
-        content = (
-            job_output
-            if isinstance(job_output, bytes)
-            else json.dumps(
-                job_output, sort_keys=True, indent=4, default=json_serial
-            )
-        )
+        if mimetype not in [None, 'application/json']:
+            headers_['Content-Type'] = mimetype
+            content = job_output
+        else:
+            if format_ == 'json':
+                content = json.dumps(job_output, sort_keys=True, indent=4,
+                                     default=json_serial)
+            else:
+                headers_['Content-Type'] = 'text/html'
+                data = {
+                    'process': {
+                        'id': process_id, 'title': process.metadata['title']
+                    },
+                    'job': {'id': job_id},
+                    'result': job_output
+                }
+                content = render_j2_template(
+                    self.config, 'processes/jobs/results/index.html', data)
 
         return headers_, 200, content
 
@@ -2434,7 +2493,7 @@ tiles/{{{}}}/{{{}}}/{{{}}}/{{{}}}?f=mvt'
 
         if format_ == 'html':  # render
             headers_['Content-Type'] = 'text/html'
-            content = render_j2_template(self.config, 'stac/root.html',
+            content = render_j2_template(self.config, 'stac/collection.html',
                                          content)
             return headers_, 200, content
 
