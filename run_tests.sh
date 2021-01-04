@@ -4,7 +4,6 @@
 
 set -euxo pipefail
 
-apt update && apt install python3-setuptools
 python3 -m pip install pytest-watch
 
 if [ "$1" = "bash" ] ; then
