@@ -117,6 +117,8 @@ PROCESS_METADATA = {
 
 
 CONTAINER_HOME = Path("/home/jovyan")
+S3_MOUNT_PATH = CONTAINER_HOME / "s3"
+S3_MOUNT_UUID = "1000"
 
 # this just needs to be any unique id
 JOB_RUNNER_GROUP_ID = 20200
@@ -221,6 +223,15 @@ class PapermillNotebookKubernetesProcessor(KubernetesProcessor):
                     s3_url=self.s3["s3_url"],
                 )
 
+        # we wait for the s3 mount: the mount point is owned by root until the
+        # mount succeeds.
+        s3_mount_wait = (
+            f"while [ $(stat -c '%u' '{S3_MOUNT_PATH}') != {S3_MOUNT_UUID} ] ; "
+            + "do echo 'wait for s3 mount'; sleep 0.01 ; done && "
+            if self.s3
+            else ""
+        )
+
         extra_config = functools.reduce(operator.add, extra_configs())
         notebook_container = k8s_client.V1Container(
             name="notebook",
@@ -235,6 +246,7 @@ class PapermillNotebookKubernetesProcessor(KubernetesProcessor):
                 #       setup
                 "-i",
                 "-c",
+                s3_mount_wait +
                 # TODO: weird bug: removing this ls results in a PermissionError when
                 #       papermill later writes to the file. This only happens sometimes,
                 #       but when it occurs, it does so consistently. I'm leaving that in
@@ -467,7 +479,7 @@ def s3_config(bucket_name, secret_name, s3_url) -> ExtraConfig:
     return ExtraConfig(
         volume_mounts=[
             k8s_client.V1VolumeMount(
-                mount_path=f"{CONTAINER_HOME}/s3",
+                mount_path=str(S3_MOUNT_PATH),
                 name=s3_user_bucket_volume_name,
                 mount_propagation="HostToContainer",
             )
@@ -489,7 +501,7 @@ def s3_config(bucket_name, secret_name, s3_url) -> ExtraConfig:
                     "sh",
                     "-c",
                     'echo "`date` waiting for job start"; '
-                    "sleep 5; "
+                    "sleep 3; "
                     'echo "`date` job start assumed"; '
                     "while pgrep -x papermill > /dev/null; do sleep 1; done; "
                     'echo "`date` job end detected"; ',
@@ -511,7 +523,7 @@ def s3_config(bucket_name, secret_name, s3_url) -> ExtraConfig:
                 ),
                 env=[
                     k8s_client.V1EnvVar(name="S3FS_ARGS", value="-oallow_other"),
-                    k8s_client.V1EnvVar(name="UID", value="1000"),
+                    k8s_client.V1EnvVar(name="UID", value=S3_MOUNT_UUID),
                     k8s_client.V1EnvVar(name="GID", value="100"),
                     k8s_client.V1EnvVar(
                         name="AWS_S3_ACCESS_KEY_ID",

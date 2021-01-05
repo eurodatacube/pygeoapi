@@ -37,7 +37,8 @@ import stat
 from typing import Dict
 
 from pygeoapi.process.notebook import (
-    CONTAINER_HOME, JOB_RUNNER_GROUP_ID,
+    CONTAINER_HOME,
+    JOB_RUNNER_GROUP_ID,
     PapermillNotebookKubernetesProcessor,
     notebook_job_output,
 )
@@ -156,6 +157,7 @@ def test_no_s3_bucket_by_default(papermill_processor, create_pod_kwargs):
     assert "/home/jovyan/s3" not in [
         m.mount_path for m in job_pod_spec.pod_spec.containers[0].volume_mounts
     ]
+    assert "wait for s3" not in str(job_pod_spec.pod_spec.containers[0].command)
 
 
 def test_s3_bucket_present_when_requested(create_pod_kwargs):
@@ -167,6 +169,7 @@ def test_s3_bucket_present_when_requested(create_pod_kwargs):
     assert "/home/jovyan/s3" in [
         m.mount_path for m in job_pod_spec.pod_spec.containers[0].volume_mounts
     ]
+    assert "wait for s3" in str(job_pod_spec.pod_spec.containers[0].command)
 
 
 def test_extra_pvcs_are_added_on_request(create_pod_kwargs):
@@ -282,7 +285,7 @@ def test_notebook_output_returns_a_text_scrap(generate_scrap_notebook, job_dict)
 
 
 def test_notebook_output_resolves_files_from_scrap(generate_scrap_notebook, job_dict):
-    filename = 'a.tif'
+    filename = "a.tif"
 
     tif_payload = b"II*\x00\x08\x00\x00\x00\x10\x00\x00\x01\x03\x00\x01\x00"
     nb_filepath = generate_scrap_notebook(output_name="result-file", data=filename)
