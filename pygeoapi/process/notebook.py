@@ -118,7 +118,8 @@ PROCESS_METADATA = {
 
 CONTAINER_HOME = Path("/home/jovyan")
 S3_MOUNT_PATH = CONTAINER_HOME / "s3"
-S3_MOUNT_UUID = "1000"
+S3_MOUNT_UID = "1000"
+S3_MOUNT_GID = "100"
 
 # this just needs to be any unique id
 JOB_RUNNER_GROUP_ID = 20200
@@ -223,11 +224,15 @@ class PapermillNotebookKubernetesProcessor(KubernetesProcessor):
                     s3_url=self.s3["s3_url"],
                 )
 
-        # we wait for the s3 mount: the mount point is owned by root until the
-        # mount succeeds.
+        # we wait for the s3 mount (couldn't think of something better than this):
+        # * first mount point is emptyDir owned by root.
+        # * then it will be chowned to user by s3fs bash script, and finally also chowned
+        #   to group by s3fs itself.
+        # so when both uid and gid are set up, we should be good to go
         s3_mount_wait = (
-            f"while [ $(stat -c '%u' '{S3_MOUNT_PATH}') != {S3_MOUNT_UUID} ] ; "
-            + "do echo 'wait for s3 mount'; sleep 0.01 ; done && "
+            "while [ "
+            f"\"$(stat -c '%u %g' '{S3_MOUNT_PATH}')\" != '{S3_MOUNT_UID} {S3_MOUNT_GID}'"
+            " ] ; do echo 'wait for s3 mount'; sleep 0.01 ; done && "
             if self.s3
             else ""
         )
@@ -523,8 +528,8 @@ def s3_config(bucket_name, secret_name, s3_url) -> ExtraConfig:
                 ),
                 env=[
                     k8s_client.V1EnvVar(name="S3FS_ARGS", value="-oallow_other"),
-                    k8s_client.V1EnvVar(name="UID", value=S3_MOUNT_UUID),
-                    k8s_client.V1EnvVar(name="GID", value="100"),
+                    k8s_client.V1EnvVar(name="UID", value=S3_MOUNT_UID),
+                    k8s_client.V1EnvVar(name="GID", value=S3_MOUNT_GID),
                     k8s_client.V1EnvVar(
                         name="AWS_S3_ACCESS_KEY_ID",
                         value_from=k8s_client.V1EnvVarSource(
