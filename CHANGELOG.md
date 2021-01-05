@@ -1,3 +1,7 @@
+## 0.0.41
+* Wait for s3 mount before starting job
+* Change permission error workaround
+
 ## 0.0.40
 * Reduced job web-UI due to changes upstream
 * Use new job result logic from upstream
