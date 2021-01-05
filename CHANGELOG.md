@@ -1,3 +1,6 @@
+## 0.0.42
+* Improve s3 mount start detection
+
 ## 0.0.41
 * Wait for s3 mount before starting job
 * Change permission error workaround
