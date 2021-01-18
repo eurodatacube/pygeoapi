@@ -12,13 +12,13 @@ RUN apt update \
         libpq-dev \
     && rm -rf /var/lib/apt/lists/
 
-RUN pip install git+git://github.com/EOxServer/eoxserver.git
+RUN python3 -m pip install git+git://github.com/EOxServer/eoxserver.git
 
 RUN git clone https://github.com/eurodatacube/ogc-edc.git \
     && cd ogc-edc \
     # set fixed commit, otherwise docker will cache anything
     && git checkout 5f2844e5dbf63f05d8076965b02171bd91871820 \
-    && pip3 install -r requirements.txt
+    && python3 -m pip install -r requirements.txt
 ENV PYTHONPATH="/pygeoapi/ogc-edc"
 
 ADD dispatch_app.py /pygeoapi
