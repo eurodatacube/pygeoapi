@@ -95,6 +95,10 @@ resources:
         home_volume_claim_name: ""
         extra_pvcs: []
         jupyter_base_url: ""
+        s3:
+          bucket_name: dev-edc-oapi-job
+          secret_name: edc-oapi-job
+          s3_url: "https://s3-eu-central-1.amazonaws.com"
 
     #foo:
     #    title: foo
