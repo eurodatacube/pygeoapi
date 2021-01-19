@@ -116,7 +116,7 @@ RUN apt update \
 
 RUN python3 -m pip install \
     git+git://github.com/EOxServer/eoxserver.git \
-    git+git://github.com/eurodatacube/pygeoapi-kubernetes-papermill.git && true
+    git+git://github.com/eurodatacube/pygeoapi-kubernetes-papermill.git@5c9190c3787b4ca356b68dc66b78145a9af8e8d8
 
 RUN git clone https://github.com/eurodatacube/ogc-edc.git \
     && cd ogc-edc \
