@@ -379,6 +379,23 @@ def get_processes(process_id=None):
     return response
 
 
+@BLUEPRINT.route('/processes/<process_id>/coverage', methods=['POST'])
+def execute_coverage_process(process_id):
+    # ignore process_id for now (can select notebook in future)
+    headers, status_code, content = api_.execute_coverage_process(
+        headers=request.headers,
+        args=request.args,
+        data=request.data,
+    )
+
+    response = make_response(content, status_code)
+
+    if headers:
+        response.headers = headers
+
+    return response
+
+
 @BLUEPRINT.route('/processes/<process_id>/jobs', methods=['GET', 'POST'])
 @BLUEPRINT.route('/processes/<process_id>/jobs/<job_id>',
                  methods=['GET', 'DELETE'])

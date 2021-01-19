@@ -2208,6 +2208,37 @@ tiles/{{{}}}/{{{}}}/{{{}}}/{{{}}}?f=mvt'
 
         return headers_, http_status, to_json(response, self.pretty_print)
 
+    def execute_coverage_process(self, headers, args, data):
+        process_id = 'execute-notebook'
+        processes_config = filter_dict_by_key_value(self.config['resources'], 'type', 'process')
+        process = load_plugin('process', processes_config[process_id]['processor'])
+
+        # mapping process_id -> notebook
+
+        data_dict = {
+            "notebook": "/pygeoapi/ndvi.ipynb" ,
+            "parameters_json": {
+                'args': args.to_dict(),
+                **{
+                    d['key']: d.get('value', d.get("collection"))
+                for d in  data.get('input', [])
+                },
+            }
+        }
+
+        job_id = str(uuid.uuid1())
+
+        # use fake sync mode in manager
+        self.manager.execute_process(
+            process,
+            job_id,
+            data_dict,
+            is_async=False,
+        )
+
+        return self.get_process_job_result(headers, args, process_id, job_id)
+
+
     def get_process_job_result(self, headers, args, process_id, job_id):
         """
         Get result of job (instance of a process)
