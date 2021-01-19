@@ -2213,6 +2213,14 @@ tiles/{{{}}}/{{{}}}/{{{}}}/{{{}}}?f=mvt'
         processes_config = filter_dict_by_key_value(self.config['resources'], 'type', 'process')
         process = load_plugin('process', processes_config[process_id]['processor'])
 
+        try:
+            # Parse bytes data, if applicable
+            data = data.decode()
+        except (UnicodeDecodeError, AttributeError):
+            pass
+
+        data = json.loads(data)
+
         # mapping process_id -> notebook
 
         data_dict = {
