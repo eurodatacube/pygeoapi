@@ -90,7 +90,7 @@ resources:
       processor:
         name: pygeoapi_kubernetes_papermill.PapermillNotebookKubernetesProcessor
         output_directory: "/home/jovyan/s3/job-output"
-        default_image: "527538141574.dkr.ecr.eu-central-1.amazonaws.com/eurodatacube-jupyter-user:0.22.3"
+        default_image: "eurodatacube/jupyter-user:0.22.1-non-edc-pygeoapi-1"
         image_pull_secret: ""
         home_volume_claim_name: ""
         extra_pvcs: []
