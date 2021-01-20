@@ -117,8 +117,8 @@ resources:
           - type: coverage
             name: edc_ogc.pygeoapi.provider.EDCProvider
             data: DEM
-            x_field: lon
-            y_field: lat
+            x_field: Lon
+            y_field: Lat
             time_field: time
             format:
               name: GeoTIFF
@@ -140,8 +140,8 @@ resources:
           - type: coverage
             name: edc_ogc.pygeoapi.provider.EDCProvider
             data: L8L1C
-            x_field: lon
-            y_field: lat
+            x_field: Lon
+            y_field: Lat
             time_field: time
             format:
               name: GeoTIFF
@@ -163,8 +163,8 @@ resources:
           - type: coverage
             name: edc_ogc.pygeoapi.provider.EDCProvider
             data: S1GRD
-            x_field: lon
-            y_field: lat
+            x_field: Lon
+            y_field: Lat
             time_field: time
             format:
               name: GeoTIFF
@@ -186,8 +186,8 @@ resources:
           - type: coverage
             name: edc_ogc.pygeoapi.provider.EDCProvider
             data: S2L1C
-            x_field: lon
-            y_field: lat
+            x_field: Lon
+            y_field: Lat
             time_field: time
             format:
               name: GeoTIFF
@@ -209,8 +209,8 @@ resources:
           - type: coverage
             name: edc_ogc.pygeoapi.provider.EDCProvider
             data: S2L2A
-            x_field: lon
-            y_field: lat
+            x_field: Lon
+            y_field: Lat
             time_field: time
             format:
               name: GeoTIFF
@@ -232,8 +232,8 @@ resources:
           - type: coverage
             name: edc_ogc.pygeoapi.provider.EDCProvider
             data: S3OLCI
-            x_field: lon
-            y_field: lat
+            x_field: Lon
+            y_field: Lat
             time_field: time
             format:
               name: GeoTIFF
@@ -255,8 +255,8 @@ resources:
           - type: coverage
             name: edc_ogc.pygeoapi.provider.EDCProvider
             data: S3SLSTR
-            x_field: lon
-            y_field: lat
+            x_field: Lon
+            y_field: Lat
             time_field: time
             format:
               name: GeoTIFF
@@ -278,8 +278,8 @@ resources:
           - type: coverage
             name: edc_ogc.pygeoapi.provider.EDCProvider
             data: S5PL2
-            x_field: lon
-            y_field: lat
+            x_field: Lon
+            y_field: Lat
             time_field: time
             format:
               name: GeoTIFF
@@ -301,8 +301,8 @@ resources:
           - type: coverage
             name: edc_ogc.pygeoapi.provider.EDCProvider
             data: MODIS
-            x_field: lon
-            y_field: lat
+            x_field: Lon
+            y_field: Lat
             time_field: time
             format:
               name: GeoTIFF
