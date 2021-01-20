@@ -2221,10 +2221,8 @@ tiles/{{{}}}/{{{}}}/{{{}}}/{{{}}}?f=mvt'
 
         data = json.loads(data)
 
-        # mapping process_id -> notebook
-
         data_dict = {
-            "notebook": "/pygeoapi/ndvi.ipynb" ,
+            "notebook": "/home/jovyan/s3/ndvi.ipynb" ,
             "parameters_json": {
                 'args': args.to_dict(),
                 **{
