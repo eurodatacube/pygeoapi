@@ -2242,6 +2242,9 @@ tiles/{{{}}}/{{{}}}/{{{}}}/{{{}}}?f=mvt'
             is_async=False,
         )
 
+        # this seems to force a refresh of s3fs
+        os.system("ls -la /home/jovyan/s3/job-output")
+
         return self.get_process_job_result(headers, args, process_id, job_id)
 
 
