@@ -1338,7 +1338,8 @@ class API:
                     else:
                         m = re.search(r'(.*)\(\"(\S+)\":\"(\S+.*)\"\)', s)
 
-                    subset_name = m.group(1)
+                    # accept any case, but assume it's lower case in config
+                    subset_name = m.group(1).lower()
 
                     if subset_name not in p.axes:
                         exception = {
