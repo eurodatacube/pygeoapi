@@ -1289,7 +1289,8 @@ class API:
                 LOGGER.error(exception)
                 return headers_, 400, to_json(exception, self.pretty_print)
 
-        query_args['bbox'] = bbox
+        # NOTE: disabled until EDCProvider supports this
+        # query_args['bbox'] = bbox
 
         LOGGER.debug('Processing datetime parameter')
 
@@ -1306,7 +1307,8 @@ class API:
             LOGGER.error(exception)
             return headers_, 400, to_json(exception, self.pretty_print)
 
-        query_args['datetime_'] = datetime_
+        # NOTE: disabled until EDCProvider supports this
+        # query_args['datetime_'] = datetime_
 
         if 'f' in args:
             query_args['format_'] = format_ = args['f']
