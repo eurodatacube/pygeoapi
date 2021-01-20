@@ -1338,10 +1338,10 @@ class API:
                     else:
                         m = re.search(r'(.*)\(\"(\S+)\":\"(\S+.*)\"\)', s)
 
-                    # accept any case, but assume it's lower case in config
-                    subset_name = m.group(1).lower()
+                    # accept any case
+                    subset_name = m.group(1)
 
-                    if subset_name not in p.axes:
+                    if subset_name.lower() not in [axe.lower() for axe in p.axes]:
                         exception = {
                             'code': 'InvalidParameterValue',
                             'description': 'Invalid axis name'
