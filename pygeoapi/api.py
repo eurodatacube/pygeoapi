@@ -2226,8 +2226,8 @@ tiles/{{{}}}/{{{}}}/{{{}}}/{{{}}}?f=mvt'
             "parameters_json": {
                 'args': args.to_dict(),
                 **{
-                    d['key']: d.get('value', d.get("collection"))
-                for d in  data.get('input', [])
+                    d['id']: d.get('value', d.get("collection"))
+                for d in  data.get('inputs', [])
                 },
             }
         }
