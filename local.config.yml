@@ -100,24 +100,210 @@ resources:
           secret_name: edc-oapi-job
           s3_url: "https://s3-eu-central-1.amazonaws.com"
 
-    #foo:
-    #    title: foo
-    #    type : collection
-    #    description: foo bar
-    #    links: []
-    #    keywords: []
-    #    extents:
-    #        spatial:
-    #            bbox: [-180,-90,180,90]
-    #            crs: http://www.opengis.net/def/crs/OGC/1.3/CRS84
-    #        temporal:
-    #            begin: 2000-10-30T18:24:39Z
-    #            end: 2007-10-30T08:57:29Z
-    #    providers:
-    #      - type: coverage
-    #        name: rasterio
-    #        data: https://eoxhub-data.s3.eu-central-1.amazonaws.com/bucharest-cloudless-2019/Bucharest_B04.tif
-    #        format:
-    #          name: GTiff
-    #          mimetype: application/x-geotiff
-
+    DEM:
+        title: DEM
+        type : collection
+        description:
+        links: []
+        keywords: []
+        extents:
+          spatial:
+            bbox: [-180, -90, 180, 90]
+            crs: http://www.opengis.net/def/crs/OGC/1.3/CRS84
+          temporal:
+            begin: 2000-10-30T18:24:39Z
+            end: 2007-10-30T08:57:29Z
+        providers:
+          - type: coverage
+            name: edc_ogc.pygeoapi.provider.EDCProvider
+            data: DEM
+            x_field: lon
+            y_field: lat
+            time_field: time
+            format:
+              name: GeoTIFF
+              mimetype: application/x-geotiff
+    L8L1C:
+        title: Landsat 8 - Level-1
+        type : collection
+        description:
+        links: []
+        keywords: []
+        extents:
+          spatial:
+            bbox: [-180, -90, 180, 90]
+            crs: http://www.opengis.net/def/crs/OGC/1.3/CRS84
+          temporal:
+            begin: 2000-10-30T18:24:39Z
+            end: 2007-10-30T08:57:29Z
+        providers:
+          - type: coverage
+            name: edc_ogc.pygeoapi.provider.EDCProvider
+            data: L8L1C
+            x_field: lon
+            y_field: lat
+            time_field: time
+            format:
+              name: GeoTIFF
+              mimetype: application/x-geotiff
+    S1GRD:
+        title: Sentinel-1 GRD
+        type : collection
+        description:
+        links: []
+        keywords: []
+        extents:
+          spatial:
+            bbox: [-180, -90, 180, 90]
+            crs: http://www.opengis.net/def/crs/OGC/1.3/CRS84
+          temporal:
+            begin: 2000-10-30T18:24:39Z
+            end: 2007-10-30T08:57:29Z
+        providers:
+          - type: coverage
+            name: edc_ogc.pygeoapi.provider.EDCProvider
+            data: S1GRD
+            x_field: lon
+            y_field: lat
+            time_field: time
+            format:
+              name: GeoTIFF
+              mimetype: application/x-geotiff
+    S2L1C:
+        title: Sentinel-2 L1C
+        type : collection
+        description:
+        links: []
+        keywords: []
+        extents:
+          spatial:
+            bbox: [-180, -90, 180, 90]
+            crs: http://www.opengis.net/def/crs/OGC/1.3/CRS84
+          temporal:
+            begin: 2000-10-30T18:24:39Z
+            end: 2007-10-30T08:57:29Z
+        providers:
+          - type: coverage
+            name: edc_ogc.pygeoapi.provider.EDCProvider
+            data: S2L1C
+            x_field: lon
+            y_field: lat
+            time_field: time
+            format:
+              name: GeoTIFF
+              mimetype: application/x-geotiff
+    S2L2A:
+        title: Sentinel-2 L2A
+        type : collection
+        description:
+        links: []
+        keywords: []
+        extents:
+          spatial:
+            bbox: [-180, -90, 180, 90]
+            crs: http://www.opengis.net/def/crs/OGC/1.3/CRS84
+          temporal:
+            begin: 2000-10-30T18:24:39Z
+            end: 2007-10-30T08:57:29Z
+        providers:
+          - type: coverage
+            name: edc_ogc.pygeoapi.provider.EDCProvider
+            data: S2L2A
+            x_field: lon
+            y_field: lat
+            time_field: time
+            format:
+              name: GeoTIFF
+              mimetype: application/x-geotiff
+    S3OLCI:
+        title: Sentinel-3 OLCI
+        type : collection
+        description:
+        links: []
+        keywords: []
+        extents:
+          spatial:
+            bbox: [-180, -90, 180, 90]
+            crs: http://www.opengis.net/def/crs/OGC/1.3/CRS84
+          temporal:
+            begin: 2000-10-30T18:24:39Z
+            end: 2007-10-30T08:57:29Z
+        providers:
+          - type: coverage
+            name: edc_ogc.pygeoapi.provider.EDCProvider
+            data: S3OLCI
+            x_field: lon
+            y_field: lat
+            time_field: time
+            format:
+              name: GeoTIFF
+              mimetype: application/x-geotiff
+    S3SLSTR:
+        title: Sentinel-3 SLSTR
+        type : collection
+        description:
+        links: []
+        keywords: []
+        extents:
+          spatial:
+            bbox: [-180, -90, 180, 90]
+            crs: http://www.opengis.net/def/crs/OGC/1.3/CRS84
+          temporal:
+            begin: 2000-10-30T18:24:39Z
+            end: 2007-10-30T08:57:29Z
+        providers:
+          - type: coverage
+            name: edc_ogc.pygeoapi.provider.EDCProvider
+            data: S3SLSTR
+            x_field: lon
+            y_field: lat
+            time_field: time
+            format:
+              name: GeoTIFF
+              mimetype: application/x-geotiff
+    S5PL2:
+        title: Sentinel 5P
+        type : collection
+        description:
+        links: []
+        keywords: []
+        extents:
+          spatial:
+            bbox: [-180, -90, 180, 90]
+            crs: http://www.opengis.net/def/crs/OGC/1.3/CRS84
+          temporal:
+            begin: 2000-10-30T18:24:39Z
+            end: 2007-10-30T08:57:29Z
+        providers:
+          - type: coverage
+            name: edc_ogc.pygeoapi.provider.EDCProvider
+            data: S5PL2
+            x_field: lon
+            y_field: lat
+            time_field: time
+            format:
+              name: GeoTIFF
+              mimetype: application/x-geotiff
+    MODIS:
+        title: MODIS
+        type : collection
+        description:
+        links: []
+        keywords: []
+        extents:
+          spatial:
+            bbox: [-180, -90, 180, 90]
+            crs: http://www.opengis.net/def/crs/OGC/1.3/CRS84
+          temporal:
+            begin: 2000-10-30T18:24:39Z
+            end: 2007-10-30T08:57:29Z
+        providers:
+          - type: coverage
+            name: edc_ogc.pygeoapi.provider.EDCProvider
+            data: MODIS
+            x_field: lon
+            y_field: lat
+            time_field: time
+            format:
+              name: GeoTIFF
+              mimetype: application/x-geotiff
