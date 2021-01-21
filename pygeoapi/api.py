@@ -1338,10 +1338,12 @@ class API:
                     else:
                         m = re.search(r'(.*)\(\"(\S+)\":\"(\S+.*)\"\)', s)
 
-                    # accept any case
                     subset_name = m.group(1)
 
-                    if subset_name.lower() not in [axe.lower() for axe in p.axes]:
+                    axes_from_lower = {axe.lower(): axe for axe in p.axes}
+                    subset_name = axes_from_lower.get(subset_name.lower())
+
+                    if not subset_name:
                         exception = {
                             'code': 'InvalidParameterValue',
                             'description': 'Invalid axis name'
