@@ -83,7 +83,7 @@ metadata:
         instructions: During hours of service. Off on weekends.
         role: pointOfContact
 
-# curl -v -X GET "http://localhost:8080/collections/foo/coverage?subset=x(2900000,2900100)&subset=y(5500000,5500100)&f=GeoTIFF" -H  "accept: application/x-geotiff" > a
+# curl -v -X GET "http://localhost:8080/collections/foo/coverage?subset=x(2900000,2900100)&subset=y(5500000,5500100)&f=GeoTIFF" -H  "accept: "image/tiff; application=geotiff"" > a
 resources:
     execute-notebook:
       type: process
@@ -122,7 +122,7 @@ resources:
             time_field: time
             format:
               name: GeoTIFF
-              mimetype: application/x-geotiff
+              mimetype: "image/tiff; application=geotiff"
     L8L1C:
         title: Landsat 8 - Level-1
         type : collection
@@ -145,7 +145,7 @@ resources:
             time_field: time
             format:
               name: GeoTIFF
-              mimetype: application/x-geotiff
+              mimetype: "image/tiff; application=geotiff"
     S1GRD:
         title: Sentinel-1 GRD
         type : collection
@@ -168,7 +168,7 @@ resources:
             time_field: time
             format:
               name: GeoTIFF
-              mimetype: application/x-geotiff
+              mimetype: "image/tiff; application=geotiff"
     S2L1C:
         title: Sentinel-2 L1C
         type : collection
@@ -191,7 +191,7 @@ resources:
             time_field: time
             format:
               name: GeoTIFF
-              mimetype: application/x-geotiff
+              mimetype: "image/tiff; application=geotiff"
     S2L2A:
         title: Sentinel-2 L2A
         type : collection
@@ -214,7 +214,7 @@ resources:
             time_field: time
             format:
               name: GeoTIFF
-              mimetype: application/x-geotiff
+              mimetype: "image/tiff; application=geotiff"
     S3OLCI:
         title: Sentinel-3 OLCI
         type : collection
@@ -237,7 +237,7 @@ resources:
             time_field: time
             format:
               name: GeoTIFF
-              mimetype: application/x-geotiff
+              mimetype: "image/tiff; application=geotiff"
     S3SLSTR:
         title: Sentinel-3 SLSTR
         type : collection
@@ -260,7 +260,7 @@ resources:
             time_field: time
             format:
               name: GeoTIFF
-              mimetype: application/x-geotiff
+              mimetype: "image/tiff; application=geotiff"
     S5PL2:
         title: Sentinel 5P
         type : collection
@@ -283,7 +283,7 @@ resources:
             time_field: time
             format:
               name: GeoTIFF
-              mimetype: application/x-geotiff
+              mimetype: "image/tiff; application=geotiff"
     MODIS:
         title: MODIS
         type : collection
@@ -306,4 +306,4 @@ resources:
             time_field: time
             format:
               name: GeoTIFF
-              mimetype: application/x-geotiff
+              mimetype: "image/tiff; application=geotiff"
