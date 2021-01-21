@@ -121,7 +121,7 @@ RUN python3 -m pip install \
 RUN git clone https://github.com/eurodatacube/ogc-edc.git \
     && cd ogc-edc \
     # set fixed commit, otherwise docker will cache anything
-    && git checkout 7ef46d1a2f37c9588246137d4ccd2cd5bd1835c1 \
+    && git checkout 1b96174e94f9da505009ccfbac47c6e2e57da947 \
     && python3 -m pip install -r requirements.txt
 ENV PYTHONPATH="/pygeoapi/ogc-edc"
 ENV CURL_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
