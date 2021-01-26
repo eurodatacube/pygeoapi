@@ -31,9 +31,11 @@ import json
 import os
 import logging
 import time
+from unittest import mock
 
 from pyld import jsonld
 import pytest
+from werkzeug.datastructures import ImmutableMultiDict
 from werkzeug.test import create_environ
 from werkzeug.wrappers import Request
 from pygeoapi.api import API, check_format, validate_bbox, validate_datetime
@@ -1169,3 +1171,41 @@ def test_validate_datetime():
         _ = validate_datetime(config, '../2007')
     with pytest.raises(ValueError):
         _ = validate_datetime(config, '../2010')
+
+
+def test_coverage_process(api_):
+    api_.config['resources']['execute-notebook'] = {
+        "type": "process",
+        "processor": {
+            "name": "HelloWorld"
+        },
+    }
+
+    data = {
+        "process": "https://edc-oapi.hub.eox.at/oapi/processes/python-coverage-processor",
+        "inputs": {
+            "data" : [
+                {
+                    "collection": "https://edc-oapi.hub.eox.at/oapi/collections/S2L2A"
+                },
+            ],
+            "sourceBands" : [ { "value" : [ "B04", "B08" ] } ],
+            "bandsPythonFunctions" : {
+                "value" : {
+                    "ndvi" : "return (ds[0].B08 - ds[0].B04 ) / (ds[0].B04 + ds[0].B08)",
+                    "b4" : "return (ds[0].B04)",
+                }
+            }
+        }
+    }
+
+    # this only tests that parameter parsing doesn't cause errors
+    token = object()
+    with mock.patch("pygeoapi.api.API.get_process_job_result", return_value=token):
+        result = api_.execute_coverage_process(
+            headers={},
+            args=ImmutableMultiDict(),
+            data=json.dumps(data),
+        )
+
+    assert result is token

@@ -2226,14 +2226,41 @@ tiles/{{{}}}/{{{}}}/{{{}}}/{{{}}}?f=mvt'
 
         data = json.loads(data)
 
+        inputs = data.get("inputs", {})
+        input_datas = inputs.get("data", [])
+        source_band_sets = inputs.get("sourceBands", [])
+        bands_python_functions = inputs.get("bandsPythonFunctions", {}).get("value", {})
+
+        try:
+            (input_data,) = input_datas
+            (source_bands, ) = source_band_sets
+        except ValueError:
+            return {}, 400, json.dumps({
+                'code': 'InvalidParameterValue',
+                'description': 'Currently only 1 data and sourceBands is supported',
+            })
+
+        if not bands_python_functions:
+            return {}, 400, json.dumps({
+                'code': 'InvalidParameterValue',
+                'description': 'At least 1 bandsPythonFunctions is required',
+            })
+
+        args = args.to_dict()
+        if (range_subset := args.pop("rangeSubset", None)):
+            range_subset = list(filter(None, range_subset.split(",")))
+        else:
+            # select everything as result
+            range_subset = list(bands_python_functions.keys())
+
         data_dict = {
-            "notebook": "/home/jovyan/s3/ndvi.ipynb" ,
+            "notebook": "/home/jovyan/s3/coverage_process.ipynb" ,
             "parameters_json": {
-                'args': args.to_dict(),
-                **{
-                    d['id']: d.get('value', d.get("collection"))
-                for d in  data.get('inputs', [])
-                },
+                "args": args,
+                "collection": input_data.get("collection"),
+                "source_bands": source_bands.get("value", []),
+                "bands_python_functions": bands_python_functions,
+                "range_subset": range_subset,
             }
         }
 
