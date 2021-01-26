@@ -358,7 +358,7 @@ def get_collection_tiles_data(collection_id=None, tileMatrixSetId=None,
     return response
 
 
-@BLUEPRINT.route('/processes')
+@BLUEPRINT.route('/processes', methods=['GET', 'POST'])
 @BLUEPRINT.route('/processes/<process_id>')
 def get_processes(process_id=None):
     """
@@ -368,8 +368,12 @@ def get_processes(process_id=None):
 
     :returns: HTTP response
     """
-    headers, status_code, content = api_.describe_processes(
-        request.headers, request.args, process_id)
+    if request.method == 'POST' and not process_id:
+        headers, status_code, content = api_.create_coverage_process(
+            request.headers, request.args, request.data)
+    else:
+        headers, status_code, content = api_.describe_processes(
+            request.headers, request.args, process_id)
 
     response = make_response(content, status_code)
 
@@ -379,14 +383,25 @@ def get_processes(process_id=None):
     return response
 
 
-@BLUEPRINT.route('/processes/<process_id>/coverage', methods=['POST'])
+@BLUEPRINT.route('/processes/<process_id>/coverage', methods=['POST', 'GET'])
 def execute_coverage_process(process_id):
-    # ignore process_id for now (can select notebook in future)
-    headers, status_code, content = api_.execute_coverage_process(
-        headers=request.headers,
-        args=request.args,
-        data=request.data,
-    )
+    if request.method == 'POST':
+        # ignore process_id for now (can select notebook in future)
+        headers, status_code, content = api_.execute_coverage_process(
+            headers=request.headers,
+            args=request.args,
+            data=request.data,
+            process_id=process_id,
+        )
+    else:
+        # TODO: change this to collection document? if not, remove if above
+        headers, status_code, content = api_.execute_coverage_process(
+            headers=request.headers,
+            args=request.args,
+            data=request.data,
+            process_id=process_id,
+        )
+
 
     response = make_response(content, status_code)
 

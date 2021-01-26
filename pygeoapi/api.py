@@ -40,6 +40,7 @@ import os
 import uuid
 import re
 import urllib.parse
+import pathlib
 from copy import deepcopy
 
 from dateutil.parser import parse as dateparse
@@ -91,6 +92,11 @@ CONFORMANCE = [
 ]
 
 OGC_RELTYPES_BASE = 'http://www.opengis.net/def/rel/ogc/1.0'
+
+
+COVERAGE_PROCESS_NOTEBOOK = pathlib.Path("/home/jovyan/s3/generic.ipynb")
+COVERAGE_PROCESS_NOTEBOOKS_DIR = pathlib.Path("/home/jovyan/s3/processes")
+
 
 
 def pre_process(func):
@@ -2213,53 +2219,60 @@ tiles/{{{}}}/{{{}}}/{{{}}}/{{{}}}?f=mvt'
 
         return headers_, http_status, to_json(response, self.pretty_print)
 
-    def execute_coverage_process(self, headers, args, data):
-        process_id = 'execute-notebook'
+    def create_coverage_process(self, headers, args, data):
+        data = parse_json(data)
+        inputs = parse_inputs(data)
+        process_id = data['id']
+
+        # pass parameters as papermill would and add cell for parameters below
+        prelude = [
+            {
+                "cell_type": "code",
+                "execution_count": None,
+                "metadata": {},
+                "outputs": [],
+                "source": [f"{k} = {repr(v)}\n" for k, v in inputs.items()]
+            },
+            {
+                "cell_type": "code",
+                "execution_count": None,
+                "metadata": {
+                    "tags": ["parameters"],
+                },
+                "outputs": [],
+                "source": "",
+            },
+        ]
+        nb_content = json.load(COVERAGE_PROCESS_NOTEBOOK.open())
+        nb_content['cells'] = prelude + nb_content['cells']
+
+        COVERAGE_PROCESS_NOTEBOOKS_DIR.mkdir(exist_ok=True, parents=True)
+        json.dump(
+            nb_content,
+            (COVERAGE_PROCESS_NOTEBOOKS_DIR / f"{process_id}.ipynb").open("w"),
+        )
+
+        return {}, 201, {}  # TODO: return sth nice, with rel link
+
+    def execute_coverage_process(self, headers, args, data, process_id):
+        notebook_process_id = 'execute-notebook'
         processes_config = filter_dict_by_key_value(self.config['resources'], 'type', 'process')
-        process = load_plugin('process', processes_config[process_id]['processor'])
+        process = load_plugin('process', processes_config[notebook_process_id]['processor'])
 
-        try:
-            # Parse bytes data, if applicable
-            data = data.decode()
-        except (UnicodeDecodeError, AttributeError):
-            pass
-
-        data = json.loads(data)
-
-        inputs = data.get("inputs", {})
-        input_datas = inputs.get("data", [])
-        source_band_sets = inputs.get("sourceBands", [])
-        bands_python_functions = inputs.get("bandsPythonFunctions", {}).get("value", {})
-
-        try:
-            (input_data,) = input_datas
-            (source_bands, ) = source_band_sets
-        except ValueError:
-            return {}, 400, json.dumps({
-                'code': 'InvalidParameterValue',
-                'description': 'Currently only 1 data and sourceBands is supported',
-            })
-
-        if not bands_python_functions:
-            return {}, 400, json.dumps({
-                'code': 'InvalidParameterValue',
-                'description': 'At least 1 bandsPythonFunctions is required',
-            })
+        inputs = parse_inputs(parse_json(data)) if data else {}
 
         args = args.to_dict()
         if (range_subset := args.pop("rangeSubset", None)):
             range_subset = list(filter(None, range_subset.split(",")))
         else:
             # select everything as result
-            range_subset = list(bands_python_functions.keys())
+            range_subset = list(inputs['bands_python_functions'].keys())
 
         data_dict = {
-            "notebook": "/home/jovyan/s3/coverage_process.ipynb" ,
+            "notebook": str(COVERAGE_PROCESS_NOTEBOOKS_DIR / f"{process_id}.ipynb"),
             "parameters_json": {
+                **inputs,
                 "args": args,
-                "collection": input_data.get("collection"),
-                "source_bands": source_bands.get("value", []),
-                "bands_python_functions": bands_python_functions,
                 "range_subset": range_subset,
             }
         }
@@ -2277,7 +2290,7 @@ tiles/{{{}}}/{{{}}}/{{{}}}/{{{}}}?f=mvt'
         # this seems to force a refresh of s3fs
         os.system("ls -la /home/jovyan/s3/job-output")
 
-        return self.get_process_job_result(headers, args, process_id, job_id)
+        return self.get_process_job_result(headers, args, notebook_process_id, job_id)
 
 
     def get_process_job_result(self, headers, args, process_id, job_id):
@@ -2710,3 +2723,40 @@ def validate_datetime(resource_def, datetime_=None):
         raise ValueError(msg)
 
     return datetime_
+
+def parse_json(data):
+    # NOTE: should use something from flask/werkzeug
+    try:
+        # Parse bytes data, if applicable
+        data = data.decode()
+    except (UnicodeDecodeError, AttributeError):
+        pass
+
+    return json.loads(data)
+
+def parse_inputs(data):
+    inputs = data.get("inputs", {})
+    input_datas = inputs.get("data", [])
+    source_band_sets = inputs.get("sourceBands", [])
+    bands_python_functions = inputs.get("bandsPythonFunctions", {}).get("value", {})
+
+    try:
+        (input_data,) = input_datas
+        (source_bands, ) = source_band_sets
+    except ValueError:
+        raise ProcessorExecuteError({
+            'code': 'InvalidParameterValue',
+            'description': 'Currently only 1 data and sourceBands is supported',
+        })
+
+    if not bands_python_functions:
+        raise ProcessorExecuteError({
+            'code': 'InvalidParameterValue',
+            'description': 'At least 1 bandsPythonFunctions is required',
+        })
+
+    return {
+        "collection": input_data.get("collection"),
+        "source_bands": source_bands.get("value", []),
+        "bands_python_functions": bands_python_functions,
+    }

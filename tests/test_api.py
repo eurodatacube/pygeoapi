@@ -38,7 +38,7 @@ import pytest
 from werkzeug.datastructures import ImmutableMultiDict
 from werkzeug.test import create_environ
 from werkzeug.wrappers import Request
-from pygeoapi.api import API, check_format, validate_bbox, validate_datetime
+from pygeoapi.api import API, COVERAGE_PROCESS_NOTEBOOK, COVERAGE_PROCESS_NOTEBOOKS_DIR, check_format, validate_bbox, validate_datetime
 from pygeoapi.util import yaml_load
 
 LOGGER = logging.getLogger(__name__)
@@ -1173,7 +1173,7 @@ def test_validate_datetime():
         _ = validate_datetime(config, '../2010')
 
 
-def test_coverage_process(api_):
+def test_coverage_process_parses_arguments(api_):
     api_.config['resources']['execute-notebook'] = {
         "type": "process",
         "processor": {
@@ -1206,6 +1206,63 @@ def test_coverage_process(api_):
             headers={},
             args=ImmutableMultiDict(),
             data=json.dumps(data),
+            process_id='execute-notebook',
+        )
+
+    assert result is token
+
+def test_create_coverage_process_adds_notebook_file(api_):
+    COVERAGE_PROCESS_NOTEBOOK.parent.mkdir(exist_ok=True, parents=True)
+    json.dump({"cells": []}, open(COVERAGE_PROCESS_NOTEBOOK, "w"))
+
+    id_ = "myproc"
+    data = {
+        "id" : id_,
+        "process": "https://edc-oapi.hub.eox.at/oapi/processes/python-coverage-processor",
+        "inputs": {
+            "data" : [{
+                "collection": "https://edc-oapi.hub.eox.at/oapi/collections/S2L2A",
+            }],
+            "sourceBands" : [ { "value" : [ "B04", "B08" ] } ],
+            "bandsPythonFunctions" : {
+                "value" : {
+                    "ndvi" : "return variables[0] * (ds[0].B08 - ds[0].B04 ) / (ds[0].B04 + ds[0].B08)",
+                }
+            }
+        }
+    }
+    api_.create_coverage_process(
+        headers={},
+        args=ImmutableMultiDict(),
+        data=json.dumps(data),
+    )
+
+    nb = json.load((COVERAGE_PROCESS_NOTEBOOKS_DIR / f"{id_}.ipynb").open())
+
+    assert "source_bands = ['B04', 'B08']\n" in nb['cells'][0]['source']
+    assert "parameters" in nb['cells'][1]['metadata']['tags']
+
+
+def test_collection_document(api_):
+    raise 43
+
+
+def test_execute_dynamically_created_process_parses_args(api_):
+    api_.config['resources']['execute-notebook'] = {
+        "type": "process",
+        "processor": {
+            "name": "HelloWorld"
+        },
+    }
+
+    # this only tests that parameter parsing doesn't cause errors
+    token = object()
+    with mock.patch("pygeoapi.api.API.get_process_job_result", return_value=token):
+        result = api_.execute_coverage_process(
+            headers={},
+            args=ImmutableMultiDict({"rangeSubset": "B02,ndvi"}),
+            data=b'',
+            process_id='my-proc',
         )
 
     assert result is token
