@@ -2273,17 +2273,13 @@ tiles/{{{}}}/{{{}}}/{{{}}}/{{{}}}?f=mvt'
 
         args = args.to_dict()
         if (range_subset := args.pop("rangeSubset", None)):
-            range_subset = list(filter(None, range_subset.split(",")))
-        else:
-            # select everything as result
-            range_subset = list(inputs['bands_python_functions'].keys())
+            inputs['range_subset'] = list(filter(None, range_subset.split(",")))
 
         data_dict = {
             "notebook": str(COVERAGE_PROCESS_NOTEBOOKS_DIR / f"{process_id}.ipynb"),
             "parameters_json": {
                 **inputs,
                 "args": args,
-                "range_subset": range_subset,
             }
         }
 
