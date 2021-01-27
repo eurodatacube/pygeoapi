@@ -94,7 +94,7 @@ CONFORMANCE = [
 OGC_RELTYPES_BASE = 'http://www.opengis.net/def/rel/ogc/1.0'
 
 
-COVERAGE_PROCESS_NOTEBOOK = pathlib.Path("/home/jovyan/s3/generic.ipynb")
+GENERIC_PROCESS_ID = 'generic'
 COVERAGE_PROCESS_NOTEBOOKS_DIR = pathlib.Path("/home/jovyan/s3/processes")
 
 
@@ -2243,13 +2243,13 @@ tiles/{{{}}}/{{{}}}/{{{}}}/{{{}}}?f=mvt'
                 "source": "",
             },
         ]
-        nb_content = json.load(COVERAGE_PROCESS_NOTEBOOK.open())
+        nb_content = json.load(notebook_for_process(GENERIC_PROCESS_ID).open())
         nb_content['cells'] = prelude + nb_content['cells']
 
         COVERAGE_PROCESS_NOTEBOOKS_DIR.mkdir(exist_ok=True, parents=True)
         json.dump(
             nb_content,
-            (COVERAGE_PROCESS_NOTEBOOKS_DIR / f"{process_id}.ipynb").open("w"),
+            notebook_for_process(process_id=process_id).open("w"),
         )
 
         return {}, 201, {}  # TODO: return sth nice, with rel link
@@ -2259,7 +2259,10 @@ tiles/{{{}}}/{{{}}}/{{{}}}/{{{}}}?f=mvt'
         processes_config = filter_dict_by_key_value(self.config['resources'], 'type', 'process')
         process = load_plugin('process', processes_config[notebook_process_id]['processor'])
 
-        inputs = parse_inputs(parse_json(data)) if data else {}
+        if process_id == GENERIC_PROCESS_ID:
+            inputs = parse_inputs(parse_json(data))
+        else:
+            inputs = {}
 
         args = args.to_dict()
         if (range_subset := args.pop("rangeSubset", None)):
@@ -2760,3 +2763,7 @@ def parse_inputs(data):
         "source_bands": source_bands.get("value", []),
         "bands_python_functions": bands_python_functions,
     }
+
+
+def notebook_for_process(process_id):
+    return COVERAGE_PROCESS_NOTEBOOKS_DIR / f"{process_id}.ipynb"
