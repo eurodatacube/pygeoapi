@@ -2276,7 +2276,7 @@ tiles/{{{}}}/{{{}}}/{{{}}}/{{{}}}?f=mvt'
             inputs['range_subset'] = list(filter(None, range_subset.split(",")))
 
         data_dict = {
-            "notebook": str(COVERAGE_PROCESS_NOTEBOOKS_DIR / f"{process_id}.ipynb"),
+            "notebook": str(notebook_for_process(process_id)),
             "parameters_json": {
                 **inputs,
                 "args": args,
