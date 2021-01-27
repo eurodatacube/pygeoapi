@@ -1214,11 +1214,14 @@ def test_coverage_process_parses_arguments(api_with_nb):
 
     assert result is token
 
-def test_create_coverage_process_adds_notebook_file(api_):
-    generic_nb_path = notebook_for_process(GENERIC_PROCESS_ID)
-    generic_nb_path.parent.mkdir(exist_ok=True, parents=True)
-    json.dump({"cells": []}, open(generic_nb_path, "w"))
 
+def create_coverage_process(process_id, cells=None):
+    nb_path = notebook_for_process(process_id)
+    nb_path.parent.mkdir(exist_ok=True, parents=True)
+    json.dump({"cells": cells if cells else []}, open(nb_path, "w"))
+
+def test_create_coverage_process_adds_notebook_file(api_):
+    create_coverage_process(GENERIC_PROCESS_ID)
     id_ = "myproc"
     data = {
         "id" : id_,
@@ -1247,8 +1250,22 @@ def test_create_coverage_process_adds_notebook_file(api_):
     assert "parameters" in nb['cells'][1]['metadata']['tags']
 
 
-def test_collection_document(api_):
-    raise 43
+def test_coverage_process_collection_returns_collection_and_bands(api_):
+    process_id = "myproc"
+    create_coverage_process(process_id, cells=[{"source": [
+        "collection = 'https://edc-oapi.hub.eox.at/oapi/collections/S2L2A'\n",
+        "source_bands = ['B04', 'B08']\n",
+        "bands_python_functions = {'ndvi': 'return (ds[0].B08 - ds[0].B04 ) / (ds[0].B04 + ds[0].B08)', 'b4': 'return (ds[0].B04) * factor'}\n"
+    ]}])
+
+    _, _, collection = api_.describe_coverage_process(
+        headers={},
+        args=ImmutableMultiDict(),
+        process_id=process_id,
+    )
+
+    assert collection['id'] == 'S2L2A'
+    assert {f['id'] for f in collection['rangetype']['field']} == {'ndvi', 'b4'}
 
 
 def test_execute_dynamically_created_process_parses_args(api_with_nb):

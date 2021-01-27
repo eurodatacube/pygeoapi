@@ -40,13 +40,14 @@ import os
 import uuid
 import re
 import urllib.parse
+import urllib.request
 import pathlib
 from copy import deepcopy
 
 from dateutil.parser import parse as dateparse
 import pytz
 
-from pygeoapi import __version__
+from pygeoapi import __version__, process
 from pygeoapi.linked_data import (geojson2geojsonld, jsonldify,
                                   jsonldify_collection)
 from pygeoapi.log import setup_logger
@@ -2301,6 +2302,31 @@ tiles/{{{}}}/{{{}}}/{{{}}}/{{{}}}?f=mvt'
 
         return self.get_process_job_result(headers, args, notebook_process_id, job_id)
 
+    def describe_coverage_process(self, headers, args, process_id):
+        nb_contents = json.load(notebook_for_process(process_id).open())
+
+        process_meta = {}
+        # Warning: don't look at the next line
+        exec("".join(nb_contents['cells'][0]['source']), {}, process_meta)
+
+        # just fetch the collection from whereever it is, probably ends up calling
+        # describe_collection here
+        with urllib.request.urlopen(process_meta['collection']) as response:
+            collection_document = json.loads(response.read())
+
+        collection_document.setdefault('rangetype', {})['field'] = [
+            {
+                'definition': 'UINT16',
+                'id': band,
+                'name': band,
+                'nodata': None,
+                'type': 'QuantityType',
+                'uom': {},
+            }
+            for band in process_meta['bands_python_functions']
+        ]
+
+        return {}, 200, collection_document
 
     def get_process_job_result(self, headers, args, process_id, job_id):
         """
