@@ -2221,7 +2221,7 @@ tiles/{{{}}}/{{{}}}/{{{}}}/{{{}}}?f=mvt'
 
     def create_coverage_process(self, headers, args, data):
         data = parse_json(data)
-        inputs = parse_inputs(data)
+        inputs = parse_coverage_process_inputs(data)
         process_id = data['id']
 
         # pass parameters as papermill would and add cell for parameters below
@@ -2259,10 +2259,16 @@ tiles/{{{}}}/{{{}}}/{{{}}}/{{{}}}?f=mvt'
         processes_config = filter_dict_by_key_value(self.config['resources'], 'type', 'process')
         process = load_plugin('process', processes_config[notebook_process_id]['processor'])
 
+        data = parse_json(data) if data else {}
         if process_id == GENERIC_PROCESS_ID:
-            inputs = parse_inputs(parse_json(data))
+            inputs = parse_coverage_process_inputs(data)
         else:
-            inputs = {}
+            # every input here can just be variables for use in code, so inject directly
+            inputs = {
+                k: literal_value
+                for k, input_value in data.get("inputs", {}).items()
+                if (literal_value := input_value.get("value"))
+            }
 
         args = args.to_dict()
         if (range_subset := args.pop("rangeSubset", None)):
@@ -2284,9 +2290,9 @@ tiles/{{{}}}/{{{}}}/{{{}}}/{{{}}}?f=mvt'
 
         # use fake sync mode in manager
         self.manager.execute_process(
-            process,
-            job_id,
-            data_dict,
+            p=process,
+            job_id=job_id,
+            data_dict=data_dict,
             is_async=False,
         )
 
@@ -2737,7 +2743,7 @@ def parse_json(data):
 
     return json.loads(data)
 
-def parse_inputs(data):
+def parse_coverage_process_inputs(data):
     inputs = data.get("inputs", {})
     input_datas = inputs.get("data", [])
     source_band_sets = inputs.get("sourceBands", [])
@@ -2766,4 +2772,9 @@ def parse_inputs(data):
 
 
 def notebook_for_process(process_id):
-    return COVERAGE_PROCESS_NOTEBOOKS_DIR / f"{process_id}.ipynb"
+    nb_dir = (
+        COVERAGE_PROCESS_NOTEBOOKS_DIR
+        if process_id != GENERIC_PROCESS_ID
+        else COVERAGE_PROCESS_NOTEBOOKS_DIR.parent
+    )
+    return nb_dir / f"{process_id}.ipynb"

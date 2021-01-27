@@ -1267,12 +1267,23 @@ def test_execute_dynamically_created_process_parses_args(api_with_nb):
 def test_execute_dynamically_created_process_parses_args_with_vars(api_with_nb):
     # this only tests that parameter parsing doesn't cause errors
     token = object()
-    with mock.patch("pygeoapi.api.API.get_process_job_result", return_value=token):
+    with mock.patch(
+        "pygeoapi.api.API.get_process_job_result", return_value=token
+    ), mock.patch(
+        "pygeoapi.process.manager.base.BaseManager.execute_process",
+    ) as mock_execute_process:
         result = api_with_nb.execute_coverage_process(
             headers={},
             args=ImmutableMultiDict({"rangeSubset": "B02,ndvi"}),
-            data=b'',
+            data=json.dumps({
+                "inputs": {
+                    "factor": {"value": 1.3},
+                }
+            }),
             process_id='my-proc',
         )
 
     assert result is token
+
+    data_dict = mock_execute_process.mock_calls[0].kwargs['data_dict']
+    assert data_dict['parameters_json']['factor'] == 1.3
