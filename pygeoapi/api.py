@@ -2244,16 +2244,21 @@ tiles/{{{}}}/{{{}}}/{{{}}}/{{{}}}?f=mvt'
                 "source": "",
             },
         ]
-        nb_content = json.load(notebook_for_process(GENERIC_PROCESS_ID).open())
+        with notebook_for_process(GENERIC_PROCESS_ID).open() as nb_file:
+            nb_content = json.load(nb_file)
+
         nb_content['cells'] = prelude + nb_content['cells']
 
         COVERAGE_PROCESS_NOTEBOOKS_DIR.mkdir(exist_ok=True, parents=True)
-        json.dump(
-            nb_content,
-            notebook_for_process(process_id=process_id).open("w"),
-        )
 
-        return {}, 201, {}  # TODO: return sth nice, with rel link
+        with notebook_for_process(process_id=process_id).open("w") as nb_file:
+            json.dump(nb_content, nb_file)
+
+        return (
+            {},
+            201,
+            self.describe_coverage_process(headers, args, process_id=process_id)[2],
+        )
 
     def execute_coverage_process(self, headers, args, data, process_id):
         notebook_process_id = 'execute-notebook'
@@ -2299,7 +2304,8 @@ tiles/{{{}}}/{{{}}}/{{{}}}/{{{}}}?f=mvt'
         return self.get_process_job_result(headers, args, notebook_process_id, job_id)
 
     def describe_coverage_process(self, headers, args, process_id):
-        nb_contents = json.load(notebook_for_process(process_id).open())
+        with notebook_for_process(process_id).open() as nb_file:
+            nb_contents = json.load(nb_file)
 
         process_meta = {}
         # Warning: don't look at the next line

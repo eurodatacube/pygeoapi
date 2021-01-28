@@ -1222,11 +1222,11 @@ def create_coverage_process(process_id, cells=None):
     nb_path.parent.mkdir(exist_ok=True, parents=True)
     json.dump({"cells": cells if cells else []}, open(nb_path, "w"))
 
-def test_create_coverage_process_adds_notebook_file(api_):
-    create_coverage_process(GENERIC_PROCESS_ID)
-    id_ = "myproc"
-    data = {
-        "id" : id_,
+
+@pytest.fixture()
+def create_coverage_process_args():
+    return {
+        "id" : "myproc",
         "process": "https://edc-oapi.hub.eox.at/oapi/processes/python-coverage-processor",
         "inputs": {
             "data" : [{
@@ -1236,20 +1236,36 @@ def test_create_coverage_process_adds_notebook_file(api_):
             "bandsPythonFunctions" : {
                 "value" : {
                     "ndvi" : "return variables[0] * (ds[0].B08 - ds[0].B04 ) / (ds[0].B04 + ds[0].B08)",
+                    "b4" : "return ds[0].B04",
                 }
             }
         }
     }
+
+
+def test_create_coverage_process_adds_notebook_file(api_, create_coverage_process_args):
+    create_coverage_process(GENERIC_PROCESS_ID)
     api_.create_coverage_process(
         headers={},
         args=ImmutableMultiDict(),
-        data=json.dumps(data),
+        data=json.dumps(create_coverage_process_args),
     )
 
-    nb = json.load(notebook_for_process(id_).open())
-
+    nb = json.load(notebook_for_process(create_coverage_process_args['id']).open())
     assert "source_bands = ['B04', 'B08']\n" in nb['cells'][0]['source']
     assert "parameters" in nb['cells'][1]['metadata']['tags']
+
+
+def test_create_coverage_process_returns_collection(api_, create_coverage_process_args):
+    create_coverage_process(GENERIC_PROCESS_ID)
+    _, _, collection = api_.create_coverage_process(
+        headers={},
+        args=ImmutableMultiDict(),
+        data=json.dumps(create_coverage_process_args),
+    )
+
+    assert collection['id'] == 'S2L2A'
+    assert {f['id'] for f in collection['rangetype']['field']} == {'ndvi', 'b4'}
 
 
 def test_coverage_process_collection_returns_collection_and_bands(api_):
