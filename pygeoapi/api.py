@@ -2328,6 +2328,19 @@ tiles/{{{}}}/{{{}}}/{{{}}}/{{{}}}?f=mvt'
             for band in process_meta['bands_python_functions']
         ]
 
+        collection_document['links'] = [
+            link
+            for link in collection_document['links']
+            if link['rel'] != "http://www.opengis.net/def/rel/ogc/1.0/coverage"
+        ] + [
+            {
+                "href": f"/oapi/process/{process_id}/coverage",
+                "rel": "http://www.opengis.net/def/rel/ogc/1.0/coverage",
+                "title": "Coverage data",
+                "type": "application/prs.coverage+json",
+            },
+        ]
+
         return {}, 200, collection_document
 
     def get_process_job_result(self, headers, args, process_id, job_id):

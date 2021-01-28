@@ -1285,6 +1285,19 @@ def test_coverage_process_collection_returns_collection_and_bands(api_):
     assert collection['id'] == 'S2L2A'
     assert {f['id'] for f in collection['rangetype']['field']} == {'ndvi', 'b4'}
 
+    assert [
+        link
+        for link in collection['links']
+        if link['rel'] == "http://www.opengis.net/def/rel/ogc/1.0/coverage"
+    ] == [
+        {
+            "href": f"/oapi/process/{process_id}/coverage",
+            "rel": "http://www.opengis.net/def/rel/ogc/1.0/coverage",
+            "title": "Coverage data",
+            "type": "application/prs.coverage+json",
+        },
+    ]
+
 
 def test_execute_dynamically_created_process_parses_args(api_with_nb):
     # this only tests that parameter parsing doesn't cause errors
