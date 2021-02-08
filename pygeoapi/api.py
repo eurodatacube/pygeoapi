@@ -2220,10 +2220,13 @@ tiles/{{{}}}/{{{}}}/{{{}}}/{{{}}}?f=mvt'
 
         return headers_, http_status, to_json(response, self.pretty_print)
 
-    def create_coverage_process(self, headers, args, data):
+    def create_deferred_process(self, headers, args, data, process_id):
         data = parse_json(data)
         inputs = parse_coverage_process_inputs(data)
-        process_id = data['id']
+
+        process_aliases = {"python-coverage-processor": GENERIC_PROCESS_ID}
+        process_id = process_aliases.get(process_id, process_id)
+        deferred_process_id = str(uuid.uuid4())
 
         # pass parameters as papermill would and add cell for parameters below
         prelude = [
@@ -2244,20 +2247,32 @@ tiles/{{{}}}/{{{}}}/{{{}}}/{{{}}}?f=mvt'
                 "source": "",
             },
         ]
-        with notebook_for_process(GENERIC_PROCESS_ID).open() as nb_file:
+
+        with notebook_for_process(process_id).open() as nb_file:
             nb_content = json.load(nb_file)
 
         nb_content['cells'] = prelude + nb_content['cells']
 
         COVERAGE_PROCESS_NOTEBOOKS_DIR.mkdir(exist_ok=True, parents=True)
 
-        with notebook_for_process(process_id=process_id).open("w") as nb_file:
+        with notebook_for_process(deferred_process_id).open("w") as nb_file:
             json.dump(nb_content, nb_file)
 
+        collection_url = (
+            f"{self.config['server']['url']}/processes/{process_id}/deferred/{deferred_process_id}"
+        )
+        collection_document = {
+            **self.describe_coverage_process(headers, args, process_id=deferred_process_id)[2],
+            "links": [{
+                "href": collection_url,
+                "rel": "http://www.opengis.net/def/rel/ogc/1.0/coverage",
+            }],
+        }
+
         return (
-            {},
-            201,
-            self.describe_coverage_process(headers, args, process_id=process_id)[2],
+            {"Location": collection_url},
+            303,
+            collection_document,
         )
 
     def execute_coverage_process(self, headers, args, data, process_id):

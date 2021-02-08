@@ -359,7 +359,7 @@ def get_collection_tiles_data(collection_id=None, tileMatrixSetId=None,
 
 
 @BLUEPRINT.route('/processes', methods=['GET', 'POST'])
-@BLUEPRINT.route('/processes/<process_id>')
+@BLUEPRINT.route('/processes/<process_id>', methods=['GET', 'POST'])
 def get_processes(process_id=None):
     """
     OGC API - Processes description endpoint
@@ -368,9 +368,12 @@ def get_processes(process_id=None):
 
     :returns: HTTP response
     """
-    if request.method == 'POST' and not process_id:
-        headers, status_code, content = api_.create_coverage_process(
-            request.headers, request.args, request.data)
+    if request.method == 'POST':
+        if not process_id:
+            raise NotImplementedError("Creating new processes is currently not supported")
+        else:
+            headers, status_code, content = api_.create_deferred_process(
+                request.headers, request.args, request.data, process_id)
     else:
         headers, status_code, content = api_.describe_processes(
             request.headers, request.args, process_id)
@@ -381,6 +384,12 @@ def get_processes(process_id=None):
         response.headers = headers
 
     return response
+
+
+@BLUEPRINT.route('/processes/<process_id>/deferred/<deferred_id>', methods=['GET', 'POST'])
+def execute_deferred_process(process_id, deferred_id):
+    raise 4
+
 
 
 @BLUEPRINT.route('/processes/<process_id>/coverage', methods=['POST', 'GET'])

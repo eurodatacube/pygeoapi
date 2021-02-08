@@ -1190,9 +1190,7 @@ def test_coverage_process_parses_arguments(api_with_nb):
         "process": "https://edc-oapi.hub.eox.at/oapi/processes/python-coverage-processor",
         "inputs": {
             "data" : [
-                {
-                    "collection": "https://edc-oapi.hub.eox.at/oapi/collections/S2L2A"
-                },
+                {"collection": "https://edc-oapi.hub.eox.at/oapi/collections/S2L2A"},
             ],
             "sourceBands" : [ { "value" : [ "B04", "B08" ] } ],
             "bandsPythonFunctions" : {
@@ -1242,30 +1240,29 @@ def create_coverage_process_args():
         }
     }
 
+@pytest.fixture()
+def mock_collection_resource():
+    urlopen_mock =mock.MagicMock()
+    urlopen_mock.return_value.__enter__.return_value.read.return_value = json.dumps({
+        "id": "S2L2A",
+        "title": "Sentinel-2 L2A",
+        "extent": {
+            "spatial": {
+                "bbox": [[-180, -90, 180, 90]],
+                "crs": "http://www.opengis.net/def/crs/OGC/1.3/CRS84"
+            },
+            "temporal": {
+                "interval": [["2015-06-23T00:00:00", None]]
+            }
+        },
+        "links": [],
+    })
+    with mock.patch(
+        "pygeoapi.api.urllib.request.urlopen" ,
+        new=urlopen_mock
+    ) as mocker:
+        yield mocker
 
-def test_create_coverage_process_adds_notebook_file(api_, create_coverage_process_args):
-    create_coverage_process(GENERIC_PROCESS_ID)
-    api_.create_coverage_process(
-        headers={},
-        args=ImmutableMultiDict(),
-        data=json.dumps(create_coverage_process_args),
-    )
-
-    nb = json.load(notebook_for_process(create_coverage_process_args['id']).open())
-    assert "source_bands = ['B04', 'B08']\n" in nb['cells'][0]['source']
-    assert "parameters" in nb['cells'][1]['metadata']['tags']
-
-
-def test_create_coverage_process_returns_collection(api_, create_coverage_process_args):
-    create_coverage_process(GENERIC_PROCESS_ID)
-    _, _, collection = api_.create_coverage_process(
-        headers={},
-        args=ImmutableMultiDict(),
-        data=json.dumps(create_coverage_process_args),
-    )
-
-    assert collection['id'] == 'S2L2A'
-    assert {f['id'] for f in collection['rangetype']['field']} == {'ndvi', 'b4'}
 
 
 def test_coverage_process_collection_returns_collection_and_bands(api_):
@@ -1335,3 +1332,54 @@ def test_execute_dynamically_created_process_parses_args_with_vars(api_with_nb):
 
     data_dict = mock_execute_process.mock_calls[0].kwargs['data_dict']
     assert data_dict['parameters_json']['factor'] == 1.3
+
+
+def test_deferred_process_creation_returns_collection(
+    api_with_nb,
+    create_coverage_process_args,
+    mock_collection_resource,
+):
+    create_coverage_process(GENERIC_PROCESS_ID)
+    process_id = create_coverage_process_args['id']
+    headers, status_code, content = api_with_nb.create_deferred_process(
+        headers={},
+        args=ImmutableMultiDict(),
+        data=json.dumps(create_coverage_process_args),
+        process_id=process_id,
+    )
+
+
+    assert f"processes/{process_id}/deferred/" in  headers['Location']
+    assert status_code == 303
+
+    # identifying checks for collection
+    assert content['id'] == 'S2L2A'
+    assert {f['id'] for f in content['rangetype']['field']} == {'ndvi', 'b4'}
+
+    # attributes that gdal parses
+    assert len(content['title']) > 3
+    assert content['extent']['spatial']['bbox'] == [[-180, -90, 180, 90]]
+    # NOTE: link could contain a type with tiff/geotiff
+    assert len([
+        link['href']
+        for link in content['links']
+        if link['rel'] == "http://www.opengis.net/def/rel/ogc/1.0/coverage"
+        and f"processes/{process_id}/deferred/" in link['href']
+    ]) == 1
+
+    # NOTE: also needs rangeType, domainset
+
+
+def test_create_coverage_process_adds_notebook_file(api_with_nb, create_coverage_process_args):
+    create_coverage_process(GENERIC_PROCESS_ID)
+    headers, _, _ = api_with_nb.create_deferred_process(
+        headers={},
+        args=ImmutableMultiDict(),
+        data=json.dumps(create_coverage_process_args),
+        process_id=create_coverage_process_args['id'],
+    )
+
+    id_ = headers['Location'].split('/')[-1]
+    nb = json.load(notebook_for_process(id_).open())
+    assert "source_bands = ['B04', 'B08']\n" in nb['cells'][0]['source']
+    assert "parameters" in nb['cells'][1]['metadata']['tags']
