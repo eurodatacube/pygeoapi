@@ -372,8 +372,10 @@ def get_processes(process_id=None):
         if not process_id:
             raise NotImplementedError("Creating new processes is currently not supported")
         else:
+            # work around bug where json data is sent as form
+            data = request.data if request.data else next(request.form.keys())
             headers, status_code, content = api_.create_deferred_process(
-                request.headers, request.args, request.data, process_id)
+                request.headers, request.args, data, process_id)
     else:
         headers, status_code, content = api_.describe_processes(
             request.headers, request.args, process_id)
