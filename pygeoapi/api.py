@@ -36,6 +36,7 @@ from datetime import datetime, timezone
 from functools import partial
 import json
 import logging
+import hashlib
 import os
 import uuid
 import re
@@ -2226,7 +2227,6 @@ tiles/{{{}}}/{{{}}}/{{{}}}/{{{}}}?f=mvt'
 
         process_aliases = {"python-coverage-processor": GENERIC_PROCESS_ID}
         process_id = process_aliases.get(process_id, process_id)
-        deferred_process_id = str(uuid.uuid4())
 
         # pass parameters as papermill would and add cell for parameters below
         prelude = [
@@ -2252,6 +2252,11 @@ tiles/{{{}}}/{{{}}}/{{{}}}/{{{}}}?f=mvt'
             nb_content = json.load(nb_file)
 
         nb_content['cells'] = prelude + nb_content['cells']
+
+        # use hash of input as id to avoid duplicates
+        deferred_process_id = hashlib.sha256(
+            str(nb_content['cells']).encode()
+        ).hexdigest()
 
         COVERAGE_PROCESS_NOTEBOOKS_DIR.mkdir(exist_ok=True, parents=True)
 
