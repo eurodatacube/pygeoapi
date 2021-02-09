@@ -390,8 +390,7 @@ def get_processes(process_id=None):
 
 @BLUEPRINT.route('/processes/<process_id>/deferred/<deferred_id>', methods=['GET', 'POST'])
 def execute_deferred_process(process_id, deferred_id):
-    raise 4
-
+    return execute_coverage_process(process_id=deferred_id)
 
 
 @BLUEPRINT.route('/processes/<process_id>/coverage', methods=['POST', 'GET'])
