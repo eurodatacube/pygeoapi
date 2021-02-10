@@ -2275,10 +2275,24 @@ tiles/{{{}}}/{{{}}}/{{{}}}/{{{}}}?f=mvt'
     def describe_deferred_process(self, process_id, deferred_process_id):
         return {
             **self.describe_coverage_process(process_id=deferred_process_id)[2],
-            "links": [{
-                "href": self.deferred_process_collection_url(process_id, deferred_process_id, coverage=True),
-                "rel": "http://www.opengis.net/def/rel/ogc/1.0/coverage",
-            }],
+            "links": [
+                {
+                    "href": self.deferred_process_collection_url(process_id, deferred_process_id, coverage=False),
+                    "rel": "self"
+                },
+                {
+                    "href": self.deferred_process_collection_url(process_id, deferred_process_id, coverage=True),
+                    "rel": "http://www.opengis.net/def/rel/ogc/1.0/coverage",
+                },
+                {
+                    "href": "#/rangetype",
+                    "rel": "http://www.opengis.net/def/rel/ogc/1.0/coverage-rangetype"
+                },
+                {
+                    "href": "#/domainset",
+                    "rel": "http://www.opengis.net/def/rel/ogc/1.0/coverage-domainset"
+                }
+            ],
         }
 
     def deferred_process_collection_url(self, process_id, deferred_process_id, coverage=False):

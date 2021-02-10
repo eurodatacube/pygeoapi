@@ -1402,3 +1402,6 @@ def test_deferred_process_returns_collection_document(
     )
     assert collection_document['id'] == 'S2L2A'
     assert 'extent' in collection_document
+
+    # json pointer link to embedded data
+    assert "#/rangetype" in [link['href'] for link in collection_document['links']]
