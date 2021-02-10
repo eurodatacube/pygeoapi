@@ -1264,18 +1264,19 @@ def mock_collection_resource():
         yield mocker
 
 
-
-def test_coverage_process_collection_returns_collection_and_bands(api_):
-    process_id = "myproc"
-    create_coverage_process(process_id, cells=[{"source": [
+@pytest.fixture()
+def deferred_process_source_lines():
+    return [
         "collection = 'https://edc-oapi.hub.eox.at/oapi/collections/S2L2A'\n",
         "source_bands = ['B04', 'B08']\n",
         "bands_python_functions = {'ndvi': 'return (ds[0].B08 - ds[0].B04 ) / (ds[0].B04 + ds[0].B08)', 'b4': 'return (ds[0].B04) * factor'}\n"
-    ]}])
+    ]
+
+def test_coverage_process_collection_returns_collection_and_bands(api_, deferred_process_source_lines):
+    process_id = "myproc"
+    create_coverage_process(process_id, cells=[{"source": deferred_process_source_lines}])
 
     _, _, collection = api_.describe_coverage_process(
-        headers={},
-        args=ImmutableMultiDict(),
         process_id=process_id,
     )
 
@@ -1383,3 +1384,21 @@ def test_create_coverage_process_adds_notebook_file(api_with_nb, create_coverage
     nb = json.load(notebook_for_process(id_).open())
     assert "source_bands = ['B04', 'B08']\n" in nb['cells'][0]['source']
     assert "parameters" in nb['cells'][1]['metadata']['tags']
+
+
+def test_deferred_process_returns_collection_document(
+    api_with_nb,
+    mock_collection_resource,
+    deferred_process_source_lines,
+):
+    deferred_process_id="some-hash"
+    create_coverage_process(
+        deferred_process_id,
+        cells=[{'source': deferred_process_source_lines}],
+    )
+    collection_document = api_with_nb.describe_deferred_process(
+        process_id="mostly_generic",
+        deferred_process_id=deferred_process_id,
+    )
+    assert collection_document['id'] == 'S2L2A'
+    assert 'extent' in collection_document

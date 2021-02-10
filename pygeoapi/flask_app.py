@@ -387,6 +387,13 @@ def get_processes(process_id=None):
 
     return response
 
+@BLUEPRINT.route('/processes/<process_id>/deferred/<deferred_id>', methods=['GET', 'POST'])
+def get_deferred_process(process_id, deferred_id):
+    return api_.describe_deferred_process(
+        process_id=process_id,
+        deferred_process_id=deferred_id,
+    )
+
 
 @BLUEPRINT.route('/processes/<process_id>/deferred/<deferred_id>/coverage', methods=['GET', 'POST'])
 def execute_deferred_process(process_id, deferred_id):
@@ -411,8 +418,7 @@ def execute_coverage_process(process_id):
 
 @BLUEPRINT.route('/processes/<process_id>/collection', methods=['GET'])
 def get_coverage_collection_document(process_id):
-    headers, status_code, content = api_.describe_coverage_process(
-            request.headers, request.args, process_id)
+    headers, status_code, content = api_.describe_coverage_process(process_id)
 
     response = make_response(content, status_code)
 

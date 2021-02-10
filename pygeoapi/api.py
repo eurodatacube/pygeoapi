@@ -2263,21 +2263,28 @@ tiles/{{{}}}/{{{}}}/{{{}}}/{{{}}}?f=mvt'
         with notebook_for_process(deferred_process_id).open("w") as nb_file:
             json.dump(nb_content, nb_file)
 
-        collection_url = (
-            f"{self.config['server']['url']}/processes/{process_id}/deferred/{deferred_process_id}"
+        return (
+            {
+                "Location": self.deferred_process_collection_url(process_id, deferred_process_id),
+                "Content-Type": "application/json",
+            },
+            303,
+            self.describe_deferred_process(process_id, deferred_process_id),
         )
-        collection_document = {
-            **self.describe_coverage_process(headers, args, process_id=deferred_process_id)[2],
+
+    def describe_deferred_process(self, process_id, deferred_process_id):
+        return {
+            **self.describe_coverage_process(process_id=deferred_process_id)[2],
             "links": [{
-                "href": collection_url,
+                "href": self.deferred_process_collection_url(process_id, deferred_process_id, coverage=True),
                 "rel": "http://www.opengis.net/def/rel/ogc/1.0/coverage",
             }],
         }
 
+    def deferred_process_collection_url(self, process_id, deferred_process_id, coverage=False):
         return (
-            {"Location": collection_url, "Content-Type": "application/json"},
-            303,
-            collection_document,
+            f"{self.config['server']['url']}/processes/{process_id}/deferred/{deferred_process_id}" +
+            ("/coverage" if coverage else "")
         )
 
     def execute_coverage_process(self, headers, args, data, process_id):
@@ -2323,7 +2330,7 @@ tiles/{{{}}}/{{{}}}/{{{}}}/{{{}}}?f=mvt'
 
         return self.get_process_job_result(headers, args, notebook_process_id, job_id)
 
-    def describe_coverage_process(self, headers, args, process_id):
+    def describe_coverage_process(self, process_id):
         with notebook_for_process(process_id).open() as nb_file:
             nb_contents = json.load(nb_file)
 
