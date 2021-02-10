@@ -2276,7 +2276,7 @@ tiles/{{{}}}/{{{}}}/{{{}}}/{{{}}}?f=mvt'
 
         return (
             {"Location": collection_url, "Content-Type": "application/json"},
-            201,
+            303,
             collection_document,
         )
 

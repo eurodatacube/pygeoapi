@@ -1350,7 +1350,7 @@ def test_deferred_process_creation_returns_collection(
 
 
     assert f"processes/{process_id}/deferred/" in  headers['Location']
-    assert status_code == 201
+    assert status_code == 303
 
     # identifying checks for collection
     assert content['id'] == 'S2L2A'
