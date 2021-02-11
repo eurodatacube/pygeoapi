@@ -235,7 +235,7 @@ class API:
               'rel': 'processes',
               'type': 'application/json',
               'title': 'Processes',
-              'href': '{}/process'.format(self.config['server']['url']),
+              'href': '{}/processes'.format(self.config['server']['url']),
             },
         ]
 
