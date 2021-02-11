@@ -231,7 +231,12 @@ class API:
               'type': 'application/json',
               'title': 'Collections',
               'href': '{}/collections'.format(self.config['server']['url'])
-            }
+            }, {
+              'rel': 'processes',
+              'type': 'application/json',
+              'title': 'Processes',
+              'href': '{}/process'.format(self.config['server']['url']),
+            },
         ]
 
         if format_ == 'html':  # render
