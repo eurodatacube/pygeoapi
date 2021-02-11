@@ -96,7 +96,7 @@ CONFORMANCE = [
 OGC_RELTYPES_BASE = 'http://www.opengis.net/def/rel/ogc/1.0'
 
 
-GENERIC_PROCESS_ID = 'generic'
+GENERIC_PROCESS_ID = 'python-coverage-processor'
 COVERAGE_PROCESS_NOTEBOOKS_DIR = pathlib.Path("/home/jovyan/s3/processes")
 
 
@@ -2224,9 +2224,6 @@ tiles/{{{}}}/{{{}}}/{{{}}}/{{{}}}?f=mvt'
     def create_deferred_process(self, headers, args, data, process_id):
         data = parse_json(data)
         inputs = parse_coverage_process_inputs(data)
-
-        process_aliases = {"python-coverage-processor": GENERIC_PROCESS_ID}
-        process_id = process_aliases.get(process_id, process_id)
 
         # pass parameters as papermill would and add cell for parameters below
         prelude = [
