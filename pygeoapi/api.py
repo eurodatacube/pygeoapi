@@ -2842,7 +2842,7 @@ def parse_coverage_process_inputs(data):
     except ValueError:
         raise ProcessorExecuteError({
             'code': 'InvalidParameterValue',
-            'description': 'Currently only 1 data and sourceBands is supported',
+            'description': 'Currently only exactly 1 data and sourceBands is supported',
         })
 
     if not bands_python_functions:
