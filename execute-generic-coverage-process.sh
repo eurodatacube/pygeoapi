@@ -6,7 +6,7 @@ O=`tempfile coverage-process`
 echo "writing to $O"
 
 curl -v -X POST \
-    "https://edc-oapi.dev.hub.eox.at/oapi/processes/generic/coverage?f=GeoTIFF&subset=lat(16:16.001),lon(48:48.001),time(%222020-09-10T00:00Z%22:%222020-09-29T00:00Z%22)&rangeSubset=b4"  \
+    "https://edc-oapi.dev.hub.eox.at/oapi/processes/python-coverage-processor/coverage?f=GeoTIFF&subset=lat(16:16.001),lon(48:48.001),time(%222020-09-10T00:00Z%22:%222020-09-29T00:00Z%22)&rangeSubset=b4"  \
     -H "Content-Type: application/json" \
     --data-raw '{
         "process": "https://edc-oapi.hub.eox.at/oapi/processes/python-coverage-processor",

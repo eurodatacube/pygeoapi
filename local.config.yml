@@ -85,6 +85,11 @@ metadata:
 
 # curl -v -X GET "http://localhost:8080/collections/foo/coverage?subset=x(2900000,2900100)&subset=y(5500000,5500100)&f=GeoTIFF" -H  "accept: "image/tiff; application=geotiff"" > a
 resources:
+    python-coverage-processor:
+      type: process
+      processor:
+        name: pygeoapi.process.python_coverage_processor.PythonCoverageProcessor
+
     execute-notebook:
       type: process
       processor:
