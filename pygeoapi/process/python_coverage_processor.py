@@ -43,7 +43,7 @@ PROCESS_METADATA = {
             "id": "data",
             "title": "data",
             "abstract": "Collections to be retrieved",
-            "input": {"formats": [{"default": True, "mimeType": "application/json"}]},
+            "input": {"formats": [{"default": True, "mimeType": "image/tiff; application=geotiff"}]},
             "minOccurs": 1,
             "maxOccurs": "unbounded",
             "metadata": None,  # TODO how to use?
