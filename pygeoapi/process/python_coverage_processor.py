@@ -41,7 +41,7 @@ PROCESS_METADATA = {
     "inputs": [
         {
             "id": "data",
-            "title": "data",
+            "title": "Data",
             "abstract": "Collections to be retrieved",
             "input": {"formats": [{"default": True, "mimeType": "image/tiff; application=geotiff"}]},
             "minOccurs": 1,
@@ -51,8 +51,8 @@ PROCESS_METADATA = {
         },
         {
             "id": "sourceBands",
-            "title": "source bands",
-            "abstract": "",
+            "title": "Source bands",
+            "abstract": "For each source data, a list of strings representing the bands required from that source by the functions defined in bandsPythonFunctions",
             "input": {"formats": [{"default": True, "mimeType": "application/json"}]},
             "minOccurs": 1,
             "maxOccurs": "unbounded",
@@ -62,10 +62,10 @@ PROCESS_METADATA = {
         {
             "id": "bandsPythonFunctions",
             "title": "Python functions to be applied on bands",
-            "abstract": "",
+            "abstract": "An associative array (dictionary/map/JSON Object) of the resulting bands to create (key) and Python functions computing them from the source bands (value)",
             "input": {"formats": [{"default": True, "mimeType": "application/json"}]},
             "minOccurs": 1,
-            "maxOccurs": "unbounded",
+            "maxOccurs": 1,
             "metadata": None,
             "keywords": [],
         },
