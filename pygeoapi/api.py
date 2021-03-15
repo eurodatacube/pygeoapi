@@ -1928,8 +1928,8 @@ tiles/{{{}}}/{{{}}}/{{{}}}/{{{}}}?f=mvt'
                 p2['outputTransmission'] = ['value']
                 p2['links'] = p2.get('links', [])
 
-                jobs_url = '{}/processes/{}/jobs'.format(
-                    self.config['server']['url'], key)
+                process_url = '{}/processes/{}'.format(self.config['server']['url'], key)
+                jobs_url = '{}/jobs'.format(process_url)
 
                 link = {
                     'type': 'text/html',
@@ -1946,6 +1946,14 @@ tiles/{{{}}}/{{{}}}/{{{}}}/{{{}}}?f=mvt'
                     'href': '{}?f=json'.format(jobs_url),
                     'title': 'jobs for this process as JSON',
                     'hreflang': self.config['server'].get('language', None)
+                }
+                p2['links'].append(link)
+
+                link = {
+                    'rel': 'process-desc',
+                    'href': process_url,
+                    'type': 'application/json',
+                    'title': "process description",
                 }
                 p2['links'].append(link)
 
