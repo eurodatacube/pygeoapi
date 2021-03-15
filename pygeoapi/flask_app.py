@@ -372,7 +372,7 @@ def get_processes(process_id=None):
     data = request.stream.read()
     if request.method == 'POST':
         if not process_id:
-            raise NotImplementedError("Creating new processes is currently not supported")
+            headers, status_code, content = api_.create_process(data, process_id)
         else:
             headers, status_code, content = api_.create_deferred_process(
                 request.headers, request.args, data, process_id)
@@ -386,6 +386,7 @@ def get_processes(process_id=None):
         response.headers = headers
 
     return response
+
 
 @BLUEPRINT.route('/processes/<process_id>/deferred/<deferred_id>', methods=['GET', 'POST'])
 def get_deferred_process(process_id, deferred_id):

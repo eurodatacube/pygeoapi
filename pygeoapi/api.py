@@ -2231,8 +2231,14 @@ tiles/{{{}}}/{{{}}}/{{{}}}/{{{}}}?f=mvt'
 
         return headers_, http_status, to_json(response, self.pretty_print)
 
+    def create_process(self, data, process_id):
+        return None
+
     def create_deferred_process(self, headers, args, data, process_id):
         data = parse_json(data)
+
+        TODO
+        inputs = parse_process_inputs(process_id=process_id, data=data)
         inputs = parse_coverage_process_inputs(data)
 
         # pass parameters as papermill would and add cell for parameters below

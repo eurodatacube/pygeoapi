@@ -1386,6 +1386,12 @@ def test_create_coverage_process_adds_notebook_file(api_with_nb, create_coverage
     assert "parameters" in nb['cells'][1]['metadata']['tags']
 
 
+def test_create_coverage_process_parses_inputs_for_generic_process(api_):
+    raise 4
+
+def test_create_coverage_process_allows_any_input_for_arbitrary_process(api_):
+    raise 4
+
 def test_deferred_process_returns_collection_document(
     api_with_nb,
     mock_collection_resource,
@@ -1405,3 +1411,78 @@ def test_deferred_process_returns_collection_document(
 
     # json pointer link to embedded data
     assert "#/rangetype" in [link['href'] for link in collection_document['links']]
+
+
+def test_create_process_returns_process_description():
+    raise 4
+
+def test_create_process_creates_process_notebook():
+    api_.create_process(
+
+    )
+
+
+
+# TODO:
+# * implement 2 phase System
+# * phase 1 creates a process (POST /process) based on another process
+#   * we get the py impelmentation already, and the names of vars
+# * phase 2 submits the actual values for the variables
+# * technically there's phase 3, which is /coverage
+# * phase2 is similar to POST /coverage , where you can still override some parameters
+# * make sure to insert cells in correct position
+#   * phase1 inserts things, phase2 must be later
+#     but phase2 is similar to POST /processes/python-coverage-processor ,
+#     where we add things before the first cell
+#     => POSSIBLY write notebook such that it doesn't really matter
+#        make sure that desired overwrites still happen
+
+
+
+
+"""
+
+# PHASE 1
+
+phase1 = {
+    "data" : [ { "input": "data" } ],
+    "variables" : [ { "input" : "redBand" }, { "input" : { "nirBand" }, { "input" : "scale_factor" } ],
+    "bandsPythonFunctions" : {
+        "value" : {
+            // Use getattr() to access the band by names based on the values for 'redBand' and 'nirBand'
+            "ndvi" : "return (getattr(ds[0], variables[1]) - getattr(ds[0], variables[0]) ) / (getattr(ds[0], variables[0]) + getattr(ds[0], variables[1]) )",
+            // variables[2] refers to 'scale_factor'
+            "b4" : "return (getattr, ds[0], variables[0]) * variables[2]"
+        }
+    }
+}
+
+
+
+
+
+# PHASE 2
+
+name_for_input0 = phase1.get("data")[0]{'input'}
+collection0 = input.get(name_for_input0)
+
+phase2 = {
+    "data" : [ { "collection": "https://edc-oapi.hub.eox.at/oapi/collections/S2L2A" } ],
+    "redBand" : { "value" : "B04" },
+    "nirBand" : { "value" : "B08" },
+    "scaleFactor" : { "value" : 5.0 }
+}
+
+<magic>
+varibles = [
+    phase2[var['input']]
+    var
+    for var in phase1.get("variables", [])
+] # ["B04", "B08", 5.0]
+
+
+
+
+for band_name, fun_code in bands_python_functions.items():
+  .
+"""
