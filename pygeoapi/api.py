@@ -2374,7 +2374,7 @@ tiles/{{{}}}/{{{}}}/{{{}}}/{{{}}}?f=mvt'
 
         collection_document.setdefault('rangetype', {})['field'] = [
             {
-                'definition': 'UINT16',
+                'definition': 'FLOAT64',
                 'id': band,
                 'name': band,
                 'nodata': None,
